@@ -15,6 +15,7 @@ In Windows, console API has a concept of *screen buffer* and *window*.
 *Window* may move when an user operates scroll bar(s) or resize a console window.
 ``Terminal.size`` gets size of the *screen buffer*.
 ``Terminal.view`` gets range of the *window*.
+``Terminal.screen`` creates new *screen buffer*.
 
 In POSIX platform, *screen buffer* and *window* are always same size.
 It may be resized when an user resize a terminal window.

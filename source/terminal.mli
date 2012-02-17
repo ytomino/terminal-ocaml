@@ -60,6 +60,8 @@ module Descr: sig
 	
 	val show_cursor: file_descr -> bool -> unit;;
 	
+	val screen: file_descr -> (file_descr -> 'a) -> 'a;;
+	
 	val set_input_mode:
 		file_descr ->
 		?echo:bool ->
@@ -105,6 +107,9 @@ val scroll: out_channel -> int -> unit;;
 (** Scroll contents in view port. *)
 
 val show_cursor: out_channel -> bool -> unit;;
+
+val screen: out_channel -> (out_channel -> 'a) -> 'a;;
+(** Save current screen, use new screen and restore old screen. *)
 
 val set_input_mode:
 	in_channel ->

@@ -20,26 +20,22 @@ let height = bottom - top + 1;;
 
 exception Exit;;
 
-if line_count < height then (
-	for i = 0 to line_count - 1 do
-		print_string lines.(i);
-		print_newline ()
-	done
-) else (
+Terminal.screen stdout (fun stdout ->
 	Terminal.set_input_mode stdin ~echo:false ~canonical:false ();
 	Terminal.show_cursor stdout false;
 	try
 		let p = ref 0 in
 		for i = 0 to height - 2 do
-			print_string lines.(i);
-			print_newline ()
+			if i < line_count then output_string stdout lines.(i);
+			output_char stdout '\n'
 		done;
+		flush stdout;
 		while true do
-			if !p + height - 1 < line_count then (
+			if !p + height <= line_count then (
 				Terminal.move_to_backward stdout ();
 				Terminal.clear_forward stdout ();
 				Terminal.color stdout ~reverse:true ();
-				print_string "more...";
+				output_string stdout "more...";
 				Terminal.color stdout ~reset:true ();
 			);
 			match input_char stdin with
@@ -47,15 +43,16 @@ if line_count < height then (
 			| 'j' when !p + height <= line_count ->
 				Terminal.move_to_backward stdout ();
 				Terminal.clear_forward stdout ();
-				print_string lines.(!p + height - 1);
-				print_newline ();
+				output_string stdout lines.(!p + height - 1);
+				output_char stdout '\n';
+				flush stdout;
 				incr p
 			| 'k' when !p > 0 ->
 				decr p;
 				Terminal.scroll stdout (-1);
 				Terminal.move stdout 0 (-(height - 1));
 				Terminal.move_to_backward stdout ();
-				print_string lines.(!p);
+				output_string stdout lines.(!p);
 				Terminal.move stdout 0 (height - 1);
 			| _ -> ()
 		done

@@ -75,6 +75,9 @@ module Descr = struct
 	external show_cursor: file_descr -> bool -> unit =
 		"mlterminal_d_show_cursor";;
 	
+	external screen: file_descr -> (file_descr -> 'a) -> 'a =
+		"mlterminal_d_screen";;
+	
 	external set_input_mode:
 		file_descr ->
 		?echo:bool ->
@@ -145,7 +148,10 @@ let save out f = (
 	flush out;
 	Descr.save
 		(Unix.descr_of_out_channel out)
-		(fun () -> let result = f () in flush out; result)
+		(fun () ->
+			let result = f () in
+			flush out;
+			result)
 );;
 
 let clear_screen out () = (
@@ -166,6 +172,18 @@ let scroll out y = (
 let show_cursor out visible = (
 	flush out;
 	Descr.show_cursor (Unix.descr_of_out_channel out) visible
+);;
+
+let screen out f = (
+	flush out;
+	Descr.screen
+		(Unix.descr_of_out_channel out)
+		(fun new_fd ->
+			let new_out = Unix.out_channel_of_descr new_fd in
+			set_binary_mode_out new_out false;
+			let result = f new_out in
+			flush new_out;
+			result)
 );;
 
 let set_input_mode = compose Descr.set_input_mode Unix.descr_of_in_channel;;

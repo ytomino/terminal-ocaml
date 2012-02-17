@@ -404,15 +404,15 @@ CAMLprim value mlterminal_d_color_byte(
 		argv[9]);
 }
 
-CAMLprim value mlterminal_d_save(value out, value callback)
+CAMLprim value mlterminal_d_save(value out, value closure)
 {
-	CAMLparam2(out, callback);
+	CAMLparam2(out, closure);
 	CAMLlocal1(result);
 #ifdef __WINNT__
 	HANDLE f = handle_of_descr(out);
 	CONSOLE_SCREEN_BUFFER_INFO info;
 	GetConsoleScreenBufferInfo(f, &info);
-	result = caml_callback_exn(callback, Val_unit);
+	result = caml_callback_exn(closure, Val_unit);
 	SetConsoleCursorPosition(f, (COORD){
 		.X = info.dwCursorPosition.X,
 		.Y = info.dwCursorPosition.Y});
@@ -420,10 +420,13 @@ CAMLprim value mlterminal_d_save(value out, value callback)
 	int f = handle_of_descr(out);
 	/* write(f, "\x1b[s", 3); */
 	write(f, "\x1b""7", 2);
-	result = caml_callback_exn(callback, Val_unit);
+	result = caml_callback_exn(closure, Val_unit);
 	/* write(f, "\x1b[u", 3); */
 	write(f, "\x1b""8", 2);
 #endif
+	if(Is_exception_result(result)){
+		caml_raise(Extract_exception(result));
+	}
 	CAMLreturn(result);
 }
 
@@ -520,6 +523,36 @@ CAMLprim value mlterminal_d_show_cursor(value out, value visible)
 	}
 #endif
 	CAMLreturn(Val_unit);
+}
+
+CAMLprim value mlterminal_d_screen(value out, value closure)
+{
+	CAMLparam2(out, closure);
+	CAMLlocal2(result, new_out);
+#ifdef __WINNT__
+	HANDLE f = handle_of_descr(out);
+	HANDLE new_f = CreateConsoleScreenBuffer(
+		GENERIC_READ | GENERIC_WRITE,
+		0,
+		NULL,
+		CONSOLE_TEXTMODE_BUFFER,
+		NULL);
+	SetConsoleActiveScreenBuffer(new_f);
+	new_out = win_alloc_handle(new_f);
+	result = caml_callback_exn(closure, new_out);
+	SetConsoleActiveScreenBuffer(f);
+	CloseHandle(new_f);
+#else
+	int f = handle_of_descr(out);
+	write(f, "\x1b""7\x1b[?47h", 8); /* enter_ca_mode */
+	new_out = out;
+	result = caml_callback_exn(closure, new_out);
+	write(f, "\x1b""[2J\x1b[?47l\x1b""8", 12); /* exit_ca_mode */
+#endif
+	if(Is_exception_result(result)){
+		caml_raise(Extract_exception(result));
+	}
+	CAMLreturn(result);
 }
 
 CAMLprim value mlterminal_d_set_input_mode(
