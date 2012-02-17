@@ -21,6 +21,8 @@ val magenta: color;;
 val yellow: color;;
 val white: color;;
 
+val set_title: string -> unit;;
+
 module Descr: sig
 	open Unix;;
 	
@@ -49,7 +51,7 @@ module Descr: sig
 		unit ->
 		unit;;
 	
-	val save: file_descr -> (unit -> unit) -> unit;;
+	val save: file_descr -> (unit -> 'a) -> 'a;;
 	
 	val clear_screen: file_descr -> unit -> unit;;
 	val clear_forward: file_descr -> unit -> unit;; (* clear to end of line *)
@@ -57,7 +59,6 @@ module Descr: sig
 	val scroll: file_descr -> int -> unit;;
 	
 	val show_cursor: file_descr -> bool -> unit;;
-	val set_title: file_descr -> string -> unit;; (* only Windows *)
 	
 	val set_input_mode:
 		file_descr ->
@@ -94,7 +95,8 @@ val color:
 	unit ->
 	unit;;
 
-val save: out_channel -> (unit -> unit) -> unit;;
+val save: out_channel -> (unit -> 'a) -> 'a;;
+(** Save and restore current position and color. *)
 
 val clear_screen: out_channel -> unit -> unit;;
 val clear_forward: out_channel -> unit -> unit;;
@@ -103,7 +105,6 @@ val scroll: out_channel -> int -> unit;;
 (** Scroll contents in view port. *)
 
 val show_cursor: out_channel -> bool -> unit;;
-val set_title: out_channel -> string -> unit;;
 
 val set_input_mode:
 	in_channel ->

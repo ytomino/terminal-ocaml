@@ -1,6 +1,6 @@
 let filename = Sys.argv.(1);;
 
-Terminal.set_title stdout filename;;
+Terminal.set_title filename;;
 
 let lines =
 	let rec loop f lines = (

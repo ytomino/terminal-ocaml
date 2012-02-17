@@ -23,10 +23,10 @@ static HANDLE handle_of_descr(value x)
 static int code_of_color(value x)
 {
 	int result = 0;
-	if(Int_val(Field(x, 0))) result |= FOREGROUND_RED; /* red */
-	if(Int_val(Field(x, 1))) result |= FOREGROUND_GREEN; /* green */
-	if(Int_val(Field(x, 2))) result |= FOREGROUND_BLUE; /* blue */
-	if(Int_val(Field(x, 3))) result |= FOREGROUND_INTENSITY; /* blue */
+	if(Int_val(Field(x, 0))) result |= FOREGROUND_RED;
+	if(Int_val(Field(x, 1))) result |= FOREGROUND_GREEN;
+	if(Int_val(Field(x, 2))) result |= FOREGROUND_BLUE;
+	if(Int_val(Field(x, 3))) result |= FOREGROUND_INTENSITY;
 	return result;
 }
 
@@ -64,6 +64,17 @@ static int code_of_color(value x)
 }
 
 #endif
+
+CAMLprim value mlterminal_set_title(value title)
+{
+	CAMLparam1(title);
+#ifdef __WINNT__
+	SetConsoleTitle(String_val(title));
+#else
+	/* no effect */
+#endif
+	CAMLreturn(Val_unit);
+}
 
 CAMLprim value mlterminal_d_is_terminal(value out)
 {
@@ -186,7 +197,7 @@ CAMLprim value mlterminal_d_position(value out)
 	new_settings.c_lflag &= ~(ECHO | ICANON);
 	new_settings.c_cc[VMIN] = 1;
 	new_settings.c_cc[VTIME] = 0;
-	tcsetattr(2, TCSANOW, &new_settings);
+	tcsetattr(2, TCSAFLUSH, &new_settings);
 	write(f, "\x1b[6n", 4);
 	char buf[256];
 	int i = 0;
@@ -396,21 +407,24 @@ CAMLprim value mlterminal_d_color_byte(
 CAMLprim value mlterminal_d_save(value out, value callback)
 {
 	CAMLparam2(out, callback);
+	CAMLlocal1(result);
 #ifdef __WINNT__
 	HANDLE f = handle_of_descr(out);
 	CONSOLE_SCREEN_BUFFER_INFO info;
 	GetConsoleScreenBufferInfo(f, &info);
-	caml_callback_exn(callback, Val_unit);
+	result = caml_callback_exn(callback, Val_unit);
 	SetConsoleCursorPosition(f, (COORD){
 		.X = info.dwCursorPosition.X,
 		.Y = info.dwCursorPosition.Y});
 #else
 	int f = handle_of_descr(out);
-	write(f, "\x1b[s", 3);
-	caml_callback_exn(callback, Val_unit);
-	write(f, "\x1b[u", 3);
+	/* write(f, "\x1b[s", 3); */
+	write(f, "\x1b""7", 2);
+	result = caml_callback_exn(callback, Val_unit);
+	/* write(f, "\x1b[u", 3); */
+	write(f, "\x1b""8", 2);
 #endif
-	CAMLreturn(Val_unit);
+	CAMLreturn(result);
 }
 
 CAMLprim value mlterminal_d_clear_screen(value out, value unit)
@@ -492,23 +506,18 @@ CAMLprim value mlterminal_d_show_cursor(value out, value visible)
 	info.bVisible = Int_val(visible);
 	SetConsoleCursorInfo(f, &info);
 #else
+	/* refer https://developer.apple.com/library/mac/#documentation/OpenSource/
+	         Conceptual/ShellScripting/AdvancedTechniques/
+	         AdvancedTechniques.html%23//apple_ref/doc/uid/
+	         TP40004268-TP40003521-SW9 */
 	int f = handle_of_descr(out);
 	if(Int_val(visible)){
-		write(f, "\x1b[>5l", 5);
+		/* write(f, "\x1b[>5l", 5); */
+		write(f, "\x1b[?25h", 6);
 	}else{
-		write(f, "\x1b[>5h", 5);
+		/* write(f, "\x1b[>5h", 5); */
+		write(f, "\x1b[?25l", 6);
 	}
-#endif
-	CAMLreturn(Val_unit);
-}
-
-CAMLprim value mlterminal_d_set_title(value out, value title)
-{
-	CAMLparam2(out, title);
-#ifdef __WINNT__
-	SetConsoleTitle(String_val(title));
-#else
-	/* no effect */
 #endif
 	CAMLreturn(Val_unit);
 }

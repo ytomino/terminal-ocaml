@@ -21,6 +21,9 @@ let magenta: color      = {red = 1; green = 0; blue = 1; intensity = 1};;
 let cyan: color         = {red = 0; green = 1; blue = 1; intensity = 1};;
 let white: color        = {red = 1; green = 1; blue = 1; intensity = 1};;
 
+external set_title: string -> unit =
+	"mlterminal_set_title";;
+
 module Descr = struct
 	open Unix;;
 
@@ -58,7 +61,7 @@ module Descr = struct
 		unit =
 		"mlterminal_d_color_byte" "mlterminal_d_color";;
 	
-	external save: file_descr -> (unit -> unit) -> unit =
+	external save: file_descr -> (unit -> 'a) -> 'a =
 		"mlterminal_d_save";;
 	
 	external clear_screen: file_descr -> unit -> unit =
@@ -71,8 +74,6 @@ module Descr = struct
 	
 	external show_cursor: file_descr -> bool -> unit =
 		"mlterminal_d_show_cursor";;
-	external set_title: file_descr -> string -> unit =
-		"mlterminal_d_set_title";;
 	
 	external set_input_mode:
 		file_descr ->
@@ -94,27 +95,27 @@ let set_size = compose Descr.set_size Unix.descr_of_out_channel;;
 let view = compose Descr.view Unix.descr_of_out_channel;;
 
 let position out = (
-	flush stdout;
+	flush out;
 	Descr.position (Unix.descr_of_out_channel out)
 );;
 
 let set_position out x y = (
-	flush stdout;
+	flush out;
 	Descr.set_position (Unix.descr_of_out_channel out) x y
 );;
 
 let move out x y = (
-	flush stdout;
+	flush out;
 	Descr.move (Unix.descr_of_out_channel out) x y
 );;
 
 let move_to_backward out () = (
-	flush stdout;
+	flush out;
 	Descr.move_to_backward (Unix.descr_of_out_channel out) ()
 );;
 
 let color
-	out_channel
+	out
 	?reset
 	?bold
 	?underscore
@@ -126,9 +127,9 @@ let color
 	()
 	: unit =
 (
-	flush stdout;
+	flush out;
 	Descr.color
-		(Unix.descr_of_out_channel out_channel)
+		(Unix.descr_of_out_channel out)
 		?reset
 		?bold
 		?underscore
@@ -141,30 +142,30 @@ let color
 );;
 
 let save out f = (
-	flush stdout;
-	Descr.save (Unix.descr_of_out_channel out) (fun () -> f (); flush stdout)
+	flush out;
+	Descr.save
+		(Unix.descr_of_out_channel out)
+		(fun () -> let result = f () in flush out; result)
 );;
 
 let clear_screen out () = (
-	flush stdout;
+	flush out;
 	Descr.clear_screen (Unix.descr_of_out_channel out) ()
 );;
 
 let clear_forward out () = (
-	flush stdout;
+	flush out;
 	Descr.clear_forward (Unix.descr_of_out_channel out) ()
 );;
 
 let scroll out y = (
-	flush stdout;
+	flush out;
 	Descr.scroll (Unix.descr_of_out_channel out) y
 );;
 
 let show_cursor out visible = (
-	flush stdout;
+	flush out;
 	Descr.show_cursor (Unix.descr_of_out_channel out) visible
 );;
-
-let set_title = compose Descr.set_title Unix.descr_of_out_channel;;
 
 let set_input_mode = compose Descr.set_input_mode Unix.descr_of_in_channel;;
