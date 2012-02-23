@@ -160,7 +160,7 @@ CAMLprim value mlterminal_d_view(value out)
 	int f = handle_of_descr(out);
 	struct ttysize win;
 	if(ioctl(f, TIOCGSIZE, &win) < 0){
-		failwith("mlterminal_size");
+		failwith("mlterminal_view");
 	}
 	left = 0;
 	top = 0;
@@ -489,11 +489,32 @@ CAMLprim value mlterminal_d_scroll(value out, value y)
 	char buf[256];
 	int len;
 	if(off_y > 0){
+#if defined(__APPLE__) && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1070
+		int i;
+		struct ttysize win;
+		if(ioctl(f, TIOCGSIZE, &win) < 0){
+			failwith("mlterminal_scroll");
+		}
+		len = snprintf(buf, 256, "\x1b[%d;0H", win.ts_lines - 1);
+		write(f, buf, len);
+		for(i = 0; i < off_y; ++i){
+			write(f, "\n", 1);
+		}
+#else
 		len = snprintf(buf, 256, "\x1b[%dS", off_y);
 		write(f, buf, len);
+#endif
 	}else if(off_y < 0){
+#if defined(__APPLE__) && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1070
+		int i;
+		write(f, "\x1b[0;0H", 6);
+		for(i = 0; i > off_y; --i){
+			write(f, "\x1bM", 2);
+		}
+#else
 		len = snprintf(buf, 256, "\x1b[%dT", -off_y);
 		write(f, buf, len);
+#endif
 	}
 #endif
 	CAMLreturn(Val_unit);
