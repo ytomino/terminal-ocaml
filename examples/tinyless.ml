@@ -32,8 +32,7 @@ Terminal.screen stdout (fun stdout ->
 		flush stdout;
 		while true do
 			if !p + height <= line_count then (
-				Terminal.move_to_backward stdout ();
-				Terminal.clear_forward stdout ();
+				Terminal.clear_line stdout ();
 				Terminal.color stdout ~reverse:true ();
 				output_string stdout "more...";
 				Terminal.color stdout ~reset:true ();
@@ -41,8 +40,7 @@ Terminal.screen stdout (fun stdout ->
 			match input_char stdin with
 			| 'q' -> raise Exit
 			| 'j' when !p + height <= line_count ->
-				Terminal.move_to_backward stdout ();
-				Terminal.clear_forward stdout ();
+				Terminal.clear_line stdout ();
 				output_string stdout lines.(!p + height - 1);
 				output_char stdout '\n';
 				flush stdout;
@@ -51,7 +49,7 @@ Terminal.screen stdout (fun stdout ->
 				decr p;
 				Terminal.scroll stdout (-1);
 				Terminal.move stdout 0 (-(height - 1));
-				Terminal.move_to_backward stdout ();
+				Terminal.move_to_bol stdout ();
 				output_string stdout lines.(!p);
 				Terminal.move stdout 0 (height - 1);
 			| _ -> ()

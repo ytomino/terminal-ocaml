@@ -63,6 +63,11 @@ static int code_of_color(value x)
 	return result;
 }
 
+static bool mem_intensity(value x)
+{
+	return Int_val(Field(x, 3));
+}
+
 #endif
 
 CAMLprim value mlterminal_set_title(value title)
@@ -284,7 +289,7 @@ CAMLprim value mlterminal_d_move(
 	CAMLreturn(Val_unit);
 }
 
-CAMLprim value mlterminal_d_move_to_backward(value out, value unit)
+CAMLprim value mlterminal_d_move_to_bol(value out, value unit)
 {
 	CAMLparam2(out, unit);
 #ifdef __WINNT__
@@ -371,8 +376,13 @@ CAMLprim value mlterminal_d_color(
 	}
 	if(Is_block(foreground)){
 		if(i > 2) buf[i++] = ';';
+		value fg = Field(foreground, 0);
+		if(!mem_intensity(fg)){
+			buf[i++] = '2';
+			buf[i++] = ';';
+		}
 		buf[i++] = '3';
-		buf[i++] = '0' + code_of_color(Field(foreground, 0));
+		buf[i++] = '0' + code_of_color(fg);
 	}
 	if(Is_block(background)){
 		if(i > 2) buf[i++] = ';';
@@ -416,6 +426,7 @@ CAMLprim value mlterminal_d_save(value out, value closure)
 	SetConsoleCursorPosition(f, (COORD){
 		.X = info.dwCursorPosition.X,
 		.Y = info.dwCursorPosition.Y});
+	SetConsoleTextAttribute(f, info.wAttributes);
 #else
 	int f = handle_of_descr(out);
 	/* write(f, "\x1b[s", 3); */
@@ -449,7 +460,7 @@ CAMLprim value mlterminal_d_clear_screen(value out, value unit)
 	CAMLreturn(Val_unit);
 }
 
-CAMLprim value mlterminal_d_clear_forward(value out, value unit)
+CAMLprim value mlterminal_d_clear_eol(value out, value unit)
 {
 	CAMLparam2(out, unit);
 #ifdef __WINNT__

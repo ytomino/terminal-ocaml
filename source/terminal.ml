@@ -44,8 +44,8 @@ module Descr = struct
 		"mlterminal_d_set_position";;
 	external move: file_descr -> int -> int -> unit =
 		"mlterminal_d_move";;
-	external move_to_backward: file_descr -> unit -> unit =
-		"mlterminal_d_move_to_backward";;
+	external move_to_bol: file_descr -> unit -> unit =
+		"mlterminal_d_move_to_bol";;
 	
 	external color:
 		file_descr ->
@@ -66,8 +66,11 @@ module Descr = struct
 	
 	external clear_screen: file_descr -> unit -> unit =
 		"mlterminal_d_clear_screen";;
-	external clear_forward: file_descr -> unit -> unit =
-		"mlterminal_d_clear_forward";;
+	external clear_eol: file_descr -> unit -> unit =
+		"mlterminal_d_clear_eol";;
+	let clear_line f () =
+		move_to_bol f ();
+		clear_eol f ();;
 	
 	external scroll: file_descr -> int -> unit =
 		"mlterminal_d_scroll";;
@@ -112,9 +115,9 @@ let move out x y = (
 	Descr.move (Unix.descr_of_out_channel out) x y
 );;
 
-let move_to_backward out () = (
+let move_to_bol out () = (
 	flush out;
-	Descr.move_to_backward (Unix.descr_of_out_channel out) ()
+	Descr.move_to_bol (Unix.descr_of_out_channel out) ()
 );;
 
 let color
@@ -159,9 +162,14 @@ let clear_screen out () = (
 	Descr.clear_screen (Unix.descr_of_out_channel out) ()
 );;
 
-let clear_forward out () = (
+let clear_eol out () = (
 	flush out;
-	Descr.clear_forward (Unix.descr_of_out_channel out) ()
+	Descr.clear_eol (Unix.descr_of_out_channel out) ()
+);;
+
+let clear_line out () = (
+	flush out;
+	Descr.clear_line (Unix.descr_of_out_channel out) ()
 );;
 
 let scroll out y = (

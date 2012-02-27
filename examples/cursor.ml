@@ -1,9 +1,9 @@
 (* Terminal.clear_screen stdout ();; *)
 
 print_string "1234567890";;
-Terminal.move_to_backward stdout ();;
+Terminal.move_to_bol stdout ();;
 Terminal.move stdout 5 0;;
-Terminal.clear_forward stdout ();;
+Terminal.clear_eol stdout ();;
 print_newline ();;
 
 for i = 1 to 5 do

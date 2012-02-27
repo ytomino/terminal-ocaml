@@ -36,7 +36,7 @@ module Descr: sig
 	val position: file_descr -> int * int;;
 	val set_position: file_descr -> int -> int -> unit;; (* absolute *)
 	val move: file_descr -> int -> int -> unit;; (* relative *)
-	val move_to_backward: file_descr -> unit -> unit;; (* to begin of line *)
+	val move_to_bol: file_descr -> unit -> unit;;
 	
 	val color:
 		file_descr ->
@@ -54,7 +54,8 @@ module Descr: sig
 	val save: file_descr -> (unit -> 'a) -> 'a;;
 	
 	val clear_screen: file_descr -> unit -> unit;;
-	val clear_forward: file_descr -> unit -> unit;; (* clear to end of line *)
+	val clear_eol: file_descr -> unit -> unit;;
+	val clear_line: file_descr -> unit -> unit;;
 	
 	val scroll: file_descr -> int -> unit;;
 	
@@ -82,7 +83,7 @@ val view: out_channel -> int * int * int * int;;
 val position: out_channel -> int * int;;
 val set_position: out_channel -> int -> int -> unit;;
 val move: out_channel -> int -> int -> unit;;
-val move_to_backward: out_channel -> unit -> unit;;
+val move_to_bol: out_channel -> unit -> unit;;
 
 val color:
 	out_channel ->
@@ -101,7 +102,9 @@ val save: out_channel -> (unit -> 'a) -> 'a;;
 (** Save and restore current position and color. *)
 
 val clear_screen: out_channel -> unit -> unit;;
-val clear_forward: out_channel -> unit -> unit;;
+val clear_eol: out_channel -> unit -> unit;;
+val clear_line: out_channel -> unit -> unit;;
+(** This is a shorthand for move_to_bol and clear_eol. *)
 
 val scroll: out_channel -> int -> unit;;
 (** Scroll contents in view port. *)
