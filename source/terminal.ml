@@ -23,6 +23,8 @@ let white: color        = {red = 1; green = 1; blue = 1; intensity = 1};;
 
 external set_title: string -> unit =
 	"mlterminal_set_title";;
+external set_title_utf8: string -> unit =
+	"mlterminal_set_title_utf8";;
 
 module Descr = struct
 	open Unix;;
@@ -85,6 +87,11 @@ module Descr = struct
 		'a =
 		"mlterminal_d_screen";;
 	
+	external output_utf8: file_descr -> string -> int -> int -> unit =
+		"mlterminal_d_output_utf8";;
+	let output_string_utf8 f s =
+		output_utf8 f s 0 (String.length s);;
+	
 	external set_input_mode:
 		file_descr ->
 		?echo:bool ->
@@ -92,6 +99,9 @@ module Descr = struct
 		unit ->
 		unit =
 		"mlterminal_d_set_input_mode";;
+	
+	external input_line_utf8: file_descr -> string =
+		"mlterminal_d_input_line_utf8";;
 	
 end;;
 
@@ -199,4 +209,15 @@ let screen out ?size f = (
 			result)
 );;
 
+let output_utf8 out s pos len = (
+	flush out;
+	Descr.output_utf8 (Unix.descr_of_out_channel out) s pos len
+);;
+
+let output_string_utf8 out s = (
+	output_utf8 out s 0 (String.length s)
+);;
+
 let set_input_mode = compose Descr.set_input_mode Unix.descr_of_in_channel;;
+
+let input_line_utf8 = compose Descr.input_line_utf8 Unix.descr_of_in_channel;;

@@ -2,7 +2,7 @@ type color = {
 	red: int;
 	green: int;
 	blue: int;
-	intensity: int};; (* only Windows *)
+	intensity: int};;
 
 val black: color;;
 val dark_red: color;;
@@ -22,6 +22,11 @@ val yellow: color;;
 val white: color;;
 
 val set_title: string -> unit;;
+(** Set title to a local encoded string.
+    On POSIX, it's no effect. *)
+val set_title_utf8: string -> unit;;
+(** Set title to a UTF-8 encoded string.
+    On POSIX, it's no effect. *)
 
 module Descr: sig
 	open Unix;;
@@ -34,8 +39,8 @@ module Descr: sig
 	val view: file_descr -> int * int * int * int;;
 	
 	val position: file_descr -> int * int;;
-	val set_position: file_descr -> int -> int -> unit;; (* absolute *)
-	val move: file_descr -> int -> int -> unit;; (* relative *)
+	val set_position: file_descr -> int -> int -> unit;;
+	val move: file_descr -> int -> int -> unit;;
 	val move_to_bol: file_descr -> unit -> unit;;
 	
 	val color:
@@ -67,12 +72,17 @@ module Descr: sig
 		(file_descr -> 'a) ->
 		'a;;
 	
+	val output_utf8: file_descr -> string -> int -> int -> unit;;
+	val output_string_utf8: file_descr -> string -> unit;;
+	
 	val set_input_mode:
 		file_descr ->
 		?echo:bool ->
 		?canonical:bool ->
 		unit ->
 		unit;;
+	
+	val input_line_utf8: file_descr -> string;;
 	
 end;;
 
@@ -122,9 +132,21 @@ val screen:
 	'a;;
 (** Save current screen, use new screen and restore old screen. *)
 
+val output_utf8: out_channel -> string -> int -> int -> unit;;
+(** Write a part of a UTF-8 encoded string to the given output channel.
+    On POSIX, It's same as [Pervasives.output]. *)
+val output_string_utf8: out_channel -> string -> unit;;
+(** Write a UTF-8 encoded string to the given output channel.
+    On POSIX, It's same as [Pervasives.output_string]. *)
+
 val set_input_mode:
 	in_channel ->
 	?echo:bool ->
 	?canonical:bool ->
 	unit ->
 	unit;;
+
+val input_line_utf8: in_channel -> string;;
+(** Read from the given input channel until a newline.
+    And return a UTF-8 encoded string.
+    On POSIX, It's same as [Pervasives.input_line]. *)

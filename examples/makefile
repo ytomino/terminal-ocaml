@@ -39,6 +39,9 @@ test-info: $(BUILDDIR)/info.byte.exe
 test-tinyless: $(BUILDDIR)/tinyless.byte.exe
 	$< tinyless.ml
 
+test-utf8io: $(BUILDDIR)/utf8io.byte.exe
+	$<
+
 $(BUILDDIR)/%.byte.exe: %.ml $(BUILDDIR)/terminal.cma
 	$(OCAMLC) -c -o $(BUILDDIR)/$(<:.ml=.cmo) -I $(BUILDDIR) $<
 	$(OCAMLC) -o $@ -I $(BUILDDIR) unix.cma $(BUILDDIR)/terminal.cma $(BUILDDIR)/$(<:.ml=.cmo)

@@ -6,6 +6,7 @@
 #include <caml/unixsupport.h>
 
 #include <stdbool.h>
+#include <string.h>
 
 #ifdef __WINNT__
 
@@ -64,6 +65,7 @@ static void clear_rect(HANDLE f, SMALL_RECT *rect)
 		.Y = rect->Bottom - rect->Top + 1};
 	size_t sizeof_buf = buf_size.X * buf_size.Y * sizeof(CHAR_INFO);
 	CHAR_INFO *buf = malloc(sizeof_buf);
+	if(buf == NULL) caml_raise_out_of_memory();
 	memset(buf, 0, sizeof_buf);
 	WriteConsoleOutput(f, buf, buf_size, (COORD){.X = 0, .Y = 0}, rect);
 	free(buf);
@@ -102,6 +104,29 @@ CAMLprim value mlterminal_set_title(value title)
 	CAMLparam1(title);
 #ifdef __WINNT__
 	SetConsoleTitle(String_val(title));
+#else
+	/* no effect */
+#endif
+	CAMLreturn(Val_unit);
+}
+
+CAMLprim value mlterminal_set_title_utf8(value title)
+{
+	CAMLparam1(title);
+#ifdef __WINNT__
+	size_t length = caml_string_length(title);
+	PWSTR wide_title = malloc((length + 1) * sizeof(WCHAR));
+	if(wide_title == NULL) caml_raise_out_of_memory();
+	size_t wide_length = MultiByteToWideChar(
+		CP_UTF8,
+		0,
+		String_val(title),
+		length,
+		wide_title,
+		length);
+	wide_title[wide_length] = L'\0';
+	SetConsoleTitleW(wide_title);
+	free(wide_title);
 #else
 	/* no effect */
 #endif
@@ -634,6 +659,41 @@ CAMLprim value mlterminal_d_screen(value out, value size, value closure)
 	CAMLreturn(result);
 }
 
+CAMLprim value mlterminal_d_output_utf8(
+	value out,
+	value s,
+	value pos,
+	value len)
+{
+	CAMLparam4(out, s, pos, len);
+#ifdef __WINNT__
+	HANDLE f = handle_of_descr(out);
+	size_t length = Int_val(len);
+	PWSTR wide_s = malloc((length + 1) * sizeof(WCHAR));
+	if(wide_s == NULL) caml_raise_out_of_memory();
+	char *p = String_val(s) + Int_val(pos);
+	size_t wide_length = MultiByteToWideChar(
+		CP_UTF8,
+		0,
+		p,
+		length,
+		wide_s,
+		length);
+	DWORD w;
+	bool failed = !WriteConsoleW(f, wide_s, wide_length, &w, NULL);
+	free(wide_s);
+	if(failed){
+		if(!WriteFile(f, p, length, &w, NULL)){
+			failwith("mlterminal_d_output_utf8");
+		}
+	}
+#else
+	int f = handle_of_descr(out);
+	write(f, String_val(s) + Int_val(pos), Int_val(len));
+#endif
+	CAMLreturn(Val_unit);
+}
+
 CAMLprim value mlterminal_d_set_input_mode(
 	value in,
 	value echo,
@@ -682,4 +742,125 @@ CAMLprim value mlterminal_d_set_input_mode(
 	tcsetattr(2, TCSANOW, &settings);
 #endif
 	CAMLreturn(Val_unit);
+}
+
+CAMLprim value mlterminal_d_input_line_utf8(
+	value in,
+	value s,
+	value pos,
+	value len)
+{
+	CAMLparam4(in, s, pos, len);
+	CAMLlocal1(result);
+#ifdef __WINNT__
+	HANDLE f = handle_of_descr(in);
+	size_t max_length;
+	size_t length;
+	char *buf;
+	size_t wide_max_length = 256;
+	size_t wide_length = 0;
+	WCHAR *wide_buf = malloc(wide_max_length * sizeof(WCHAR));
+	if(wide_buf == NULL) caml_raise_out_of_memory();
+	for(;;){
+		WCHAR *p = wide_buf + wide_length;
+		DWORD r;
+		if(!ReadConsoleW(f, p, 1, &r, NULL)){
+			free(wide_buf);
+			if(wide_length == 0) goto normal_file; /* redirected */
+			failwith("mlterminal_d_input_line_utf8");
+		}
+		if(r <= 0){
+			free(wide_buf);
+			caml_raise_end_of_file();
+		}else if(*p == '\n'){
+			if(wide_length > 0 && *(p - 1) == '\r') --wide_length;
+			break;
+		}
+		++ wide_length;
+		if(wide_length >= wide_max_length){
+			wide_max_length *= 2;
+			WCHAR *new_buf = realloc(wide_buf, wide_max_length * sizeof(WCHAR));
+			if(new_buf == NULL){
+				free(wide_buf);
+				caml_raise_out_of_memory();
+			}
+			wide_buf = new_buf;
+		}
+	}
+	max_length = wide_length * 6;
+	buf = malloc(max_length + 1);
+	length = WideCharToMultiByte(
+		CP_UTF8,
+		0,
+		wide_buf,
+		wide_length,
+		buf,
+		max_length,
+		NULL,
+		NULL);
+	free(wide_buf);
+	goto make_result;
+normal_file:
+	max_length = 256;
+	length = 0;
+	buf = malloc(max_length);
+	if(buf == NULL) caml_raise_out_of_memory();
+	for(;;){
+		char *p = buf + length;
+		DWORD r;
+		if(!ReadFile(f, p, 1, &r, NULL)){
+			free(buf);
+			failwith("mlterminal_d_input_line_utf8");
+		}
+		if(r <= 0){
+			free(buf);
+			caml_raise_end_of_file();
+		}else if(*p == '\n'){
+			if(length > 0 && *(p - 1) == '\r') --length;
+			break;
+		}
+		++ length;
+		if(length >= max_length){
+			max_length *= 2;
+			char *new_buf = realloc(buf, max_length);
+			if(new_buf == NULL){
+				free(buf);
+				caml_raise_out_of_memory();
+			}
+			buf = new_buf;
+		}
+	}
+make_result:
+	result = caml_alloc_string(length);
+	memcpy(String_val(result), buf, length);
+	free(buf);
+#else
+	int f = handle_of_descr(in);
+	size_t max_length = 256;
+	size_t length = 0;
+	char *buf = malloc(max_length);
+	if(buf == NULL) caml_raise_out_of_memory();
+	for(;;){
+		char *p = buf + length;
+		int r = read(f, p, 1);
+		if(r < 0){
+			failwith("mlterminal_d_input_line_utf8");
+		}else if(r == 0){
+			free(buf);
+			caml_raise_end_of_file();
+		}else if(*p == '\n'){
+			break;
+		}
+		++ length;
+		if(length >= max_length){
+			max_length *= 2;
+			buf = reallocf(buf, max_length);
+			if(buf == NULL) caml_raise_out_of_memory();
+		}
+	}
+	result = caml_alloc_string(length);
+	memcpy(String_val(result), buf, length);
+	free(buf);
+#endif
+	CAMLreturn(result);
 }
