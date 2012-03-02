@@ -1,18 +1,31 @@
-BUILDDIR=build
+# cross compiling ex. make TARGET=i686-w64-mingw32 all-opt
+HOST=$(shell gcc -dumpmachine)
+TARGET=$(HOST)
 
+ifneq ($(HOST),$(TARGET))
+PROGRAMPREFIX=$(TARGET)-
+else
+PROGRAMPREFIX=
 ifneq ($(shell rlwrap --version),)
 RLWRAP=rlwrap
 endif
+endif
+
+OCAMLC=$(PROGRAMPREFIX)ocamlc
+OCAMLOPT=$(PROGRAMPREFIX)ocamlopt
+
+BUILDDIR=build
 
 export CAML_LD_LIBRARY_PATH=$(BUILDDIR)/stublibs
 
-.PHONY: all test-colors test-cursor test-info test-tinyless interactive clean
+ITEMS=$(basename $(wildcard *.ml))
 
-all: \
-	$(BUILDDIR)/colors.byte.exe \
-	$(BUILDDIR)/cursor.byte.exe \
-	$(BUILDDIR)/info.byte.exe \
-	$(BUILDDIR)/tinyless.byte.exe
+.PHONY: all all-byte all-opt interactive clean $(addprefix test-,$(ITEMS))
+
+all: all-byte all-opt
+
+all-byte: $(addprefix $(BUILDDIR)/,$(addsuffix .byte.exe,$(ITEMS)))
+all-opt: $(addprefix $(BUILDDIR)/,$(addsuffix .opt.exe,$(ITEMS)))
 
 test-colors: $(BUILDDIR)/colors.byte.exe
 	$<
@@ -27,13 +40,17 @@ test-tinyless: $(BUILDDIR)/tinyless.byte.exe
 	$< tinyless.ml
 
 $(BUILDDIR)/%.byte.exe: %.ml $(BUILDDIR)/terminal.cma
-	ocamlc -c -o $(BUILDDIR)/$(<:.ml=.cmo) -I $(BUILDDIR) $<
-	ocamlc -o $@ -I $(BUILDDIR) unix.cma $(BUILDDIR)/terminal.cma $(BUILDDIR)/$(<:.ml=.cmo)
+	$(OCAMLC) -c -o $(BUILDDIR)/$(<:.ml=.cmo) -I $(BUILDDIR) $<
+	$(OCAMLC) -o $@ -I $(BUILDDIR) unix.cma $(BUILDDIR)/terminal.cma $(BUILDDIR)/$(<:.ml=.cmo)
+
+$(BUILDDIR)/%.opt.exe: %.ml $(BUILDDIR)/terminal.cmxa
+	$(OCAMLOPT) -c -o $(BUILDDIR)/$(<:.ml=.cmx) -I $(BUILDDIR) $<
+	$(OCAMLOPT) -o $@ -I $(BUILDDIR) unix.cmxa $(BUILDDIR)/terminal.cmxa $(BUILDDIR)/$(<:.ml=.cmx)
 
 interactive: $(BUILDDIR)/terminal.cma
 	$(RLWRAP) ocaml -I $(BUILDDIR) unix.cma terminal.cma
 
-$(BUILDDIR)/terminal.cma: $(wildcard ../source/terminal*)
+$(BUILDDIR)/terminal.cma $(BUILDDIR)/terminal.cmxa: $(wildcard ../source/terminal*)
 	make -C ../source -f makefile install DESTDIR=$(abspath $(BUILDDIR))
 
 clean:

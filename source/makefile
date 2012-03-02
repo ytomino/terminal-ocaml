@@ -1,54 +1,55 @@
-ifeq ($(OCAMLC),gcamlc)
-OCAMLOPT=
-ifneq ($(ComSpec),)
-OCAMLMKLIB=
-ifneq ($(GCAMLLIB),)
-OCAMLLIBDIR=$(GCAMLLIB)
-else
-OCAMLLIBDIR=C:\Program Files\Objective Caml\gcamllib
-endif
-OCAMLRUNTIME=$(OCAMLLIBDIR)/gcamlrun.a
-else
-OCAMLMKLIB=gcamlmklib
-OCAMLLIBDIR=$(shell gcamlc -where)
-endif
-else
-OCAMLC=ocamlc
-OCAMLOPT=ocamlopt
-ifneq ($(ComSpec),)
-OCAMLMKLIB=
-ifneq ($(OCAMLLIB),)
-OCAMLLIBDIR=$(OCAMLLIB)
-else
-OCAMLLIBDIR=C:\Program Files\Objective Caml\lib
-endif
-OCAMLRUNTIME=
-else
-OCAMLMKLIB=ocamlmklib
-OCAMLLIBDIR=$(shell ocamlc -where)
-endif
-endif
+HOST=$(shell gcc -dumpmachine)
+TARGET=$(HOST)
 
+ifneq ($(ComSpec),)
 empty=
-
-ifneq ($(ComSpec),)
 DIRSEP=\$(empty)
-CMDSEP=&&
-DLLSUFFIX=.dll
-RM=del $(subst /,$(DIRSEP),"$(1)")
-CP=copy $(subst /,$(DIRSEP),"$(1)") $(subst /,$(DIRSEP),"$(2)")
-MKDIR=mkdir $(subst /,$(DIRSEP),"$(1)")
-RMDIR=rmdir $(subst /,$(DIRSEP),"$(1)")
+CMDSEP=&
+RM=del $(subst /,$(DIRSEP),$(1))
+CP=copy $(subst /,$(DIRSEP),$(1)) $(subst /,$(DIRSEP),$(2))
+MKDIR=mkdir $(subst /,$(DIRSEP),$(1))
+RMDIR=rmdir $(subst /,$(DIRSEP),$(1))
 NOP=echo > NUL
 else
 DIRSEP=/
 CMDSEP=;
-DLLSUFFIX=.so
-RM=rm "$(1)"
-CP=cp "$(1)" "$(2)"
-MKDIR=mkdir "$(1)"
-RMDIR=rmdir "$(1)"
+RM=rm $(1)
+CP=cp $(1) $(2)
+MKDIR=mkdir $(1)
+RMDIR=rmdir $(1)
 NOP=echo > /dev/null
+endif
+
+ifneq ($(HOST),$(TARGET))
+PROGRAMPREFIX=$(TARGET)-
+else
+PROGRAMPREFIX=
+endif
+
+ifneq ($(findstring mingw,$(TARGET)),)
+DLLSUFFIX=.dll
+LD=flexlink -show-imports -show-exports -noentry -chain mingw
+DEFAULTLIB=$(addprefix -defaultlib ,$(1))
+else
+DLLSUFFIX=.so
+ifneq ($(findstring darwin,$(TARGET)),)
+LD=$(PROGRAMPREFIX)ld -bundle -flat_namespace -undefined suppress /usr/lib/bundle1.o
+else
+LD=$(PROGRAMPREFIX)ld -shared
+endif
+DEFAULTLIB=$(1)
+endif
+
+AR=$(PROGRAMPREFIX)ar
+GCC=$(PROGRAMPREFIX)gcc
+OCAMLC=$(PROGRAMPREFIX)ocamlc
+OCAMLOPT=$(OCAMLC:c=opt)
+OCAMLMKLIB=$(OCAMLC:c=mklib)
+
+ifneq ($(OCAMLLIB),)
+OCAMLLIBDIR=$(OCAMLLIB)
+else
+OCAMLLIBDIR=$(shell $(OCAMLC) -where)
 endif
 
 DESTDIR=$(OCAMLLIBDIR)
@@ -65,12 +66,12 @@ CSRC=terminal_stub.c
 LIBNAME=terminal
 STUBLIBNAME=ml$(LIBNAME)
 
-OCAMLCFLAGS:=-w Aer
-CFLAGS:=-O2 -W -Wall
+OCAMLCFLAGS=-w Aer
+CFLAGS=-O2 -W -Wall
 
 OCAMLMKLIBFLAGS=
 CCLIB=
-FLFLAGS:=
+LDFLAGS=
 
 $(BUILDDIR)/terminal.cmo: $(BUILDDIR)/terminal.cmi
 ########
@@ -81,14 +82,6 @@ MLOBJ=$(addprefix $(BUILDDIR)/,$(addsuffix .o,$(basename $(MLSRC))))
 MLCMI=$(addprefix $(BUILDDIR)/,$(addsuffix .cmi,$(sort $(basename $(MLI) $(MLSRC) $(MLINIT)))))
 
 COBJ=$(addprefix $(BUILDDIR)/,$(addsuffix .o,$(basename $(CSRC))))
-
-ifeq ($(OCAMLC),gcamlc)
-CFLAGS:=$(CFLAGS) -DCAML_DLL
-endif
-
-ifneq ($(OCAMLRUNTIME),)
-FLFLAGS:=-defaultlib "$(OCAMLRUNTIME)" $(FLFLAGS)
-endif
 
 .PHONY: all clean install uninstall
 
@@ -108,7 +101,7 @@ $(BUILDDIR)/%.cmx: %.ml
 	$(OCAMLOPT) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -o $@ $<
 
 $(BUILDDIR)/%.o: %.c
-	gcc -c -isystem "$(OCAMLLIBDIR)" $(CFLAGS) -o $@ $<
+	$(GCC) -c -isystem "$(OCAMLLIBDIR)" $(CFLAGS) -o $@ $<
 
 ifeq ($(STUBLIBNAME),)
 $(BUILDDIR)/$(LIBNAME).cma: $(MLCMI) $(MLCMO)
@@ -119,18 +112,18 @@ else
 ifneq ($(OCAMLMKLIB),)
 ifneq ($(OCAMLOPT),)
 $(BUILDDIR)/$(LIBNAME).cma: $(COBJ) $(MLCMI) $(MLCMO) $(MLCMX)
-	cd $(BUILDDIR) $(CMDSEP) $(OCAMLMKLIB) -ocamlc $(OCAMLC) -ocamlopt $(OCAMLOPT) -o $(LIBNAME) -oc $(STUBLIBNAME) $(notdir $(COBJ) $(MLCMO) $(MLCMX)) $(OCAMLMKLIBFLAGS)
+	cd $(BUILDDIR) && $(OCAMLMKLIB) -ocamlc $(OCAMLC) -ocamlopt $(OCAMLOPT) -o $(LIBNAME) -oc $(STUBLIBNAME) $(notdir $(COBJ) $(MLCMO) $(MLCMX)) $(OCAMLMKLIBFLAGS)
 else
 $(BUILDDIR)/$(LIBNAME).cma: $(COBJ) $(MLCMI) $(MLCMO)
-	cd $(BUILDDIR) $(CMDSEP) $(OCAMLMKLIB) -ocamlc $(OCAMLC) -o $(LIBNAME) -oc $(STUBLIBNAME) $(notdir $(COBJ) $(MLCMO)) $(OCAMLMKLIBFLAGS)
+	cd $(BUILDDIR) && $(OCAMLMKLIB) -ocamlc $(OCAMLC) -o $(LIBNAME) -oc $(STUBLIBNAME) $(notdir $(COBJ) $(MLCMO)) $(OCAMLMKLIBFLAGS)
 endif
 else
 $(BUILDDIR)/$(LIBNAME).cma: $(COBJ) $(MLCMI) $(MLCMO)
 	$(OCAMLC) -a -o $(BUILDDIR)/$(LIBNAME).cma $(MLCMO) -dllib -l$(STUBLIBNAME) -cclib -l$(STUBLIBNAME) $(CCLIB)
-	flexlink -show-imports -show-exports -noentry -chain mingw -o $(BUILDDIR)/dll$(STUBLIBNAME).dll $(COBJ) $(FLFLAGS)
+	$(LD) -o $(BUILDDIR)/dll$(STUBLIBNAME)$(DLLSUFFIX) $(COBJ) $(LDFLAGS)
 $(BUILDDIR)/$(LIBNAME).cmxa: $(COBJ) $(MLCMI) $(MLCMX)
 	$(OCAMLOPT) -a -o $(BUILDDIR)/$(LIBNAME).cmxa $(MLCMX) -cclib -l$(STUBLIBNAME) $(CCLIB)
-	ar rcs $(BUILDDIR)/lib$(STUBLIBNAME).a $(COBJ)
+	$(AR) rcs $(BUILDDIR)/lib$(STUBLIBNAME).a $(COBJ)
 endif
 endif
 
