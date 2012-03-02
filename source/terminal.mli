@@ -61,7 +61,11 @@ module Descr: sig
 	
 	val show_cursor: file_descr -> bool -> unit;;
 	
-	val screen: file_descr -> (file_descr -> 'a) -> 'a;;
+	val screen:
+		file_descr ->
+		?size:(int * int) ->
+		(file_descr -> 'a) ->
+		'a;;
 	
 	val set_input_mode:
 		file_descr ->
@@ -111,7 +115,11 @@ val scroll: out_channel -> int -> unit;;
 
 val show_cursor: out_channel -> bool -> unit;;
 
-val screen: out_channel -> (out_channel -> 'a) -> 'a;;
+val screen:
+	out_channel ->
+	?size:(int * int) ->
+	(out_channel -> 'a) ->
+	'a;;
 (** Save current screen, use new screen and restore old screen. *)
 
 val set_input_mode:

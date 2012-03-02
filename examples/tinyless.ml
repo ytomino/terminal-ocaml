@@ -15,12 +15,11 @@ let lines =
 
 let line_count = Array.length lines;;
 
-let left, top, right, bottom = Terminal.view stdout;;
-let height = bottom - top + 1;;
-
 exception Exit;;
 
 Terminal.screen stdout (fun stdout ->
+	let left, top, right, bottom = Terminal.view stdout in
+	let height = bottom - top + 1 in
 	Terminal.set_input_mode stdin ~echo:false ~canonical:false ();
 	Terminal.show_cursor stdout false;
 	try

@@ -20,6 +20,33 @@ static HANDLE handle_of_descr(value x)
 	return Handle_val(x);
 }
 
+static void set_size(HANDLE new_f, int new_w, int new_h, HANDLE old_f)
+{
+	CONSOLE_SCREEN_BUFFER_INFO info, old_info;
+	GetConsoleScreenBufferInfo(old_f, &old_info);
+	int old_win_w = old_info.srWindow.Right - old_info.srWindow.Left + 1;
+	int old_win_h = old_info.srWindow.Bottom - old_info.srWindow.Top + 1;
+	if(new_w < old_win_w || new_h < old_win_h){
+		SetConsoleWindowInfo(new_f, true, &(SMALL_RECT){
+			.Left = 0,
+			.Top = 0,
+			.Right = min(new_w, old_win_w) - 1,
+			.Bottom = min(new_h, old_win_h) - 1});
+	}
+	SetConsoleScreenBufferSize(new_f, (COORD){
+		.X = new_w,
+		.Y = new_h});
+	GetConsoleScreenBufferInfo(new_f, &info);
+	SetConsoleWindowInfo(new_f, true, &(SMALL_RECT){
+		.Left = 0,
+		.Top = 0,
+		.Right = info.dwMaximumWindowSize.X - 1,
+		.Bottom = info.dwMaximumWindowSize.Y - 1});
+}
+
+static WORD default_attributes;
+static bool default_attributes_initialized = false;
+
 static int code_of_color(value x)
 {
 	int result = 0;
@@ -110,7 +137,7 @@ CAMLprim value mlterminal_d_size(value out)
 	int f = handle_of_descr(out);
 	struct ttysize win;
 	if(ioctl(f, TIOCGSIZE, &win) < 0){
-		failwith("mlterminal_size");
+		failwith("mlterminal_d_size");
 	}
 	w = win.ts_cols;
 	h = win.ts_lines;
@@ -126,23 +153,16 @@ CAMLprim value mlterminal_d_set_size(value out, value w, value h)
 	CAMLparam3(out, w, h);
 #ifdef __WINNT__
 	HANDLE f = handle_of_descr(out);
-	CONSOLE_SCREEN_BUFFER_INFO info;
-	SetConsoleScreenBufferSize(f, (COORD){
-		.X = Int_val(w),
-		.Y = Int_val(h)});
-	GetConsoleScreenBufferInfo(f, &info);
-	SetConsoleWindowInfo(f, true, &(SMALL_RECT){
-		.Left = 0,
-		.Top = 0,
-		.Right = info.dwSize.X - 1,
-		.Bottom = info.dwSize.Y - 1});
+	int new_w = Int_val(w);
+	int new_h = Int_val(h);
+	set_size(f, new_w, new_h, f);
 #else
 	int f = handle_of_descr(out);
 	struct ttysize win;
 	win.ts_cols = Int_val(w);
 	win.ts_lines = Int_val(h);
 	if(ioctl(f, TIOCSSIZE, &win) < 0){
-		failwith("mlterminal_set_size");
+		failwith("mlterminal_d_set_size");
 	}
 #endif
 	CAMLreturn(Val_unit);
@@ -165,7 +185,7 @@ CAMLprim value mlterminal_d_view(value out)
 	int f = handle_of_descr(out);
 	struct ttysize win;
 	if(ioctl(f, TIOCGSIZE, &win) < 0){
-		failwith("mlterminal_view");
+		failwith("mlterminal_d_view");
 	}
 	left = 0;
 	top = 0;
@@ -325,9 +345,12 @@ CAMLprim value mlterminal_d_color(
 	CONSOLE_SCREEN_BUFFER_INFO info;
 	GetConsoleScreenBufferInfo(f, &info);
 	WORD attributes = info.wAttributes;
+	if(!default_attributes_initialized){
+		default_attributes_initialized = true;
+		default_attributes = attributes;
+	}
 	if(Is_block(reset) && Int_val(Field(reset, 0))){
-		attributes = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED
-			| FOREGROUND_INTENSITY;
+		attributes = default_attributes;
 	}
 	if(Is_block(foreground)){
 		attributes &= ~0x0f;
@@ -504,7 +527,7 @@ CAMLprim value mlterminal_d_scroll(value out, value y)
 		int i;
 		struct ttysize win;
 		if(ioctl(f, TIOCGSIZE, &win) < 0){
-			failwith("mlterminal_scroll");
+			failwith("mlterminal_d_scroll");
 		}
 		len = snprintf(buf, 256, "\x1b[%d;0H", win.ts_lines - 1);
 		write(f, buf, len);
@@ -557,7 +580,7 @@ CAMLprim value mlterminal_d_show_cursor(value out, value visible)
 	CAMLreturn(Val_unit);
 }
 
-CAMLprim value mlterminal_d_screen(value out, value closure)
+CAMLprim value mlterminal_d_screen(value out, value size, value closure)
 {
 	CAMLparam2(out, closure);
 	CAMLlocal2(result, new_out);
@@ -569,6 +592,12 @@ CAMLprim value mlterminal_d_screen(value out, value closure)
 		NULL,
 		CONSOLE_TEXTMODE_BUFFER,
 		NULL);
+	if(Is_block(size)){
+		value s = Field(size, 0);
+		int new_w = Int_val(Field(s, 0));
+		int new_h = Int_val(Field(s, 1));
+		set_size(new_f, new_w, new_h, f);
+	}
 	SetConsoleActiveScreenBuffer(new_f);
 	new_out = win_alloc_handle(new_f);
 	result = caml_callback_exn(closure, new_out);
@@ -577,8 +606,26 @@ CAMLprim value mlterminal_d_screen(value out, value closure)
 #else
 	int f = handle_of_descr(out);
 	write(f, "\x1b""7\x1b[?47h", 8); /* enter_ca_mode */
+	struct ttysize old_win;
+	if(Is_block(size)){
+		struct ttysize win;
+		value s = Field(size, 0);
+		if(ioctl(f, TIOCGSIZE, &old_win) < 0){
+			failwith("mlterminal_d_screen(failed to get size)");
+		}
+		win.ts_cols = Int_val(Field(s, 0));
+		win.ts_lines = Int_val(Field(s, 1));
+		if(ioctl(f, TIOCSSIZE, &win) < 0){
+			failwith("mlterminal_d_screen(failed to set size)");
+		}
+	}
 	new_out = out;
 	result = caml_callback_exn(closure, new_out);
+	if(Is_block(size)){
+		if(ioctl(f, TIOCSSIZE, &old_win) < 0){
+			failwith("mlterminal_d_screen(failed to restore size)");
+		}
+	}
 	write(f, "\x1b""[2J\x1b[?47l\x1b""8", 12); /* exit_ca_mode */
 #endif
 	if(Is_exception_result(result)){

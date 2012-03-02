@@ -78,7 +78,11 @@ module Descr = struct
 	external show_cursor: file_descr -> bool -> unit =
 		"mlterminal_d_show_cursor";;
 	
-	external screen: file_descr -> (file_descr -> 'a) -> 'a =
+	external screen:
+		file_descr ->
+		?size:(int * int) ->
+		(file_descr -> 'a) ->
+		'a =
 		"mlterminal_d_screen";;
 	
 	external set_input_mode:
@@ -182,10 +186,11 @@ let show_cursor out visible = (
 	Descr.show_cursor (Unix.descr_of_out_channel out) visible
 );;
 
-let screen out f = (
+let screen out ?size f = (
 	flush out;
 	Descr.screen
 		(Unix.descr_of_out_channel out)
+		?size
 		(fun new_fd ->
 			let new_out = Unix.out_channel_of_descr new_fd in
 			set_binary_mode_out new_out false;
