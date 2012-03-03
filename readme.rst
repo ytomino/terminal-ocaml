@@ -4,8 +4,35 @@ terminal library for Objective-Caml
 What's this?
 ------------
 
-Objective-Caml library to multiple a terminal.
+Objective-Caml library to manipulate a terminal.
 This supports Windows and POSIX.
+
+How to make
+-----------
+
+Install
++++++++
+
+::
+
+ make install DESTDIR=`ocamlc -where`
+
+Or use your preferred directory for DESTDIR.
+In this case, set DESTDIR/stublibs to CAML_LD_LIBRARY_PATH.
+
+Uninstall
++++++++++
+
+::
+
+ make uninstall DESTDIR=`ocamlc -where`
+
+Build examples
+++++++++++++++
+
+::
+
+ make -C examples
 
 Note about view port
 --------------------
@@ -29,14 +56,6 @@ It may be resized when an user resize a terminal window.
  | |C:\>        | |
  | +------------+ | ...seen until here
  +----------------+
-
-Alternatives
-------------
-
-ANSITerminal_ and Lambda-Term_ are good alternative libraries.
-
-.. _ANSITerminal: https://forge.ocamlcore.org/projects/ansiterminal/
-.. _Lambda-Term: https://forge.ocamlcore.org/projects/lambda-term/
 
 License
 -------
