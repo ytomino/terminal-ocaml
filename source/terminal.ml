@@ -21,10 +21,121 @@ let magenta: color      = {red = 1; green = 0; blue = 1; intensity = 1};;
 let cyan: color         = {red = 0; green = 1; blue = 1; intensity = 1};;
 let white: color        = {red = 1; green = 1; blue = 1; intensity = 1};;
 
+type event = string;;
+
+let event_buf: event = String.create 64;;
+
 external set_title: string -> unit =
 	"mlterminal_set_title";;
 external set_title_utf8: string -> unit =
 	"mlterminal_set_title_utf8";;
+
+let is_char ev = (
+	String.length ev = 1
+);;
+
+let char_of_event ev = (
+	assert (is_char ev);
+	ev.[0]
+);;
+
+let is_string ev = (
+	let length = String.length ev in
+	length = 1 || (length >= 2 && ev.[0] <> '\x1b')
+);;
+
+let string_of_event ev = (
+	assert (is_string ev);
+	ev
+);;
+
+let is_left ev = (
+	match ev with
+	| "\x1bOD" | "\x1b[D" -> true
+	| _ -> false
+);;
+
+let is_up ev = (
+	match ev with
+	| "\x1bOA" | "\x1b[A" -> true
+	| _ -> false
+);;
+
+let is_right ev = (
+	match ev with
+	| "\x1bOC" | "\x1b[C" -> true
+	| _ -> false
+);;
+
+let is_down ev = (
+	match ev with
+	| "\x1bOB" | "\x1b[B" -> true
+	| _ -> false
+);;
+
+let is_home ev = (
+	match ev with
+	| "\x1b[H" -> true
+	| _ -> false
+);;
+
+let is_end ev = (
+	match ev with
+	| "\x1b[E" -> true
+	| _ -> false
+);;
+
+let is_pageup ev = (
+	match ev with
+	| "\x1b[5~" -> true
+	| _ -> false
+);;
+
+let is_pagedown ev = (
+	match ev with
+	| "\x1b[6~" -> true
+	| _ -> false
+);;
+
+let is_delete ev = (
+	match ev with
+	| "\x1b[3~" -> true
+	| _ -> false
+);;
+
+let is_f ev = (
+	String.length ev = 5
+	&& ev.[0] = '\x1b'
+	&& ev.[1] = '['
+	&& (let c = ev.[2] in c >= '0' && c <= '9')
+	&& (let c = ev.[3] in c >= '0' && c <= '9')
+	&& ev.[4] = '~'
+	&& (
+		let n = (int_of_char ev.[2] - int_of_char '0') * 10
+			+ int_of_char ev.[3] - int_of_char '0'
+		in
+		(n >= 11 && n <= 15) || (n >= 17 && n <= 21) || (n >= 23 && n <= 24))
+);;
+
+let f_of_event ev = (
+	assert (is_f ev);
+	match ev with
+	| "\x1b[11~" -> 1
+	| "\x1b[12~" -> 2
+	| "\x1b[13~" -> 3
+	| "\x1b[14~" -> 4
+	| "\x1b[15~" -> 5
+	| "\x1b[17~" -> 6
+	| "\x1b[18~" -> 7
+	| "\x1b[19~" -> 8
+	| "\x1b[20~" -> 9
+	| "\x1b[21~" -> 10
+	| "\x1b[23~" -> 11
+	| "\x1b[24~" -> 12
+	| _ -> assert false
+);;
+
+let escape_sequence_of_event ev = ev;;
 
 module Descr = struct
 	open Unix;;
@@ -102,6 +213,11 @@ module Descr = struct
 	
 	external input_line_utf8: file_descr -> string =
 		"mlterminal_d_input_line_utf8";;
+	
+	external is_empty: file_descr -> bool =
+		"mlterminal_d_is_empty";;
+	external input_event: file_descr -> event =
+		"mlterminal_d_input_event";;
 	
 end;;
 

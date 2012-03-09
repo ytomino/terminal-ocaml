@@ -33,6 +33,9 @@ test-colors: $(BUILDDIR)/colors.byte.exe
 test-cursor: $(BUILDDIR)/cursor.byte.exe
 	$<
 
+test-event: $(BUILDDIR)/event.byte.exe
+	$<
+
 test-info: $(BUILDDIR)/info.byte.exe
 	$<
 

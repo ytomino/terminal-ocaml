@@ -21,12 +21,44 @@ val magenta: color;;
 val yellow: color;;
 val white: color;;
 
+type event = private string;;
+
 val set_title: string -> unit;;
 (** Set title to a local encoded string.
     On POSIX, it's no effect. *)
 val set_title_utf8: string -> unit;;
 (** Set title to a UTF-8 encoded string.
     On POSIX, it's no effect. *)
+
+val is_char: event -> bool;;
+(** Check whether given event contains a char or not. *)
+val char_of_event: event -> char;;
+(** Retrun a char of given event. *)
+
+val is_string: event -> bool;;
+(** Check whether given event contains a string(non-escape sequence) or not. *)
+val string_of_event: event -> string;;
+(** Retrun a string of given event. *)
+
+val is_left: event -> bool;;
+val is_up: event -> bool;;
+val is_right: event -> bool;;
+val is_down: event -> bool;;
+
+val is_home: event -> bool;;
+val is_end: event -> bool;;
+val is_pageup: event -> bool;;
+val is_pagedown: event -> bool;;
+
+val is_delete: event -> bool;;
+
+val is_f: event -> bool;;
+(** Check whether given event contains a function key or not. *)
+val f_of_event: event -> int;;
+(** Retrun the number of a function key of given event. *)
+
+val escape_sequence_of_event: event -> string;;
+(** Represent given event as escape sequence. *)
 
 module Descr: sig
 	open Unix;;
@@ -83,6 +115,12 @@ module Descr: sig
 		unit;;
 	
 	val input_line_utf8: file_descr -> string;;
+	
+	val is_empty: file_descr -> bool;;
+	(** Check whether given file descripter is empty or has any events. *)
+	
+	val input_event: file_descr -> event;;
+	(** Read one event from given file descripter. *)
 	
 end;;
 
