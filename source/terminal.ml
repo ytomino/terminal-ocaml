@@ -135,6 +135,12 @@ let f_of_event ev = (
 	| _ -> assert false
 );;
 
+let is_resized ev = (
+	match ev with
+	| "\x1b[Sz" -> true
+	| _ -> false
+);;
+
 let escape_sequence_of_event ev = ev;;
 
 module Descr = struct

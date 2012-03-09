@@ -8,6 +8,17 @@
 #include <stdbool.h>
 #include <string.h>
 
+static value constant_string(value *var, char const *s)
+{
+	if(*var == 0){
+		caml_register_global_root(var);
+		*var = caml_copy_string(s);
+	}
+	return *var;
+}
+
+static value resized_event;
+
 #ifdef __WINNT__
 
 #define WIN32_LEAN_AND_MEAN
@@ -43,6 +54,20 @@ static void set_size(HANDLE new_f, int new_w, int new_h, HANDLE old_f)
 		.Top = 0,
 		.Right = info.dwMaximumWindowSize.X - 1,
 		.Bottom = info.dwMaximumWindowSize.Y - 1});
+}
+
+static bool window_input_installed = false;
+
+static void install_window_input(void)
+{
+	if(!window_input_installed){
+		HANDLE f = GetStdHandle(STD_INPUT_HANDLE);
+		DWORD mode;
+		window_input_installed = true;
+		GetConsoleMode(f, &mode);
+		mode |= ENABLE_WINDOW_INPUT;
+		SetConsoleMode(f, mode);
+	}
 }
 
 static WORD default_attributes;
@@ -93,18 +118,10 @@ static value vk_f10;
 static value vk_f11;
 static value vk_f12;
 
-static value vk(value *var, char const *s)
-{
-	if(*var == 0){
-		caml_register_global_root(var);
-		*var = caml_copy_string(s);
-	}
-	return *var;
-}
-
 #else
 
 #include <stdio.h>
+#include <signal.h>
 #include <termios.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -113,6 +130,26 @@ static value vk(value *var, char const *s)
 static int handle_of_descr(value x)
 {
 	return Int_val(x);
+}
+
+static bool sigwinch_installed = false;
+static volatile bool resized = false;
+
+static void sigwinch_handler(__attribute__((unused)) int sig)
+{
+	resized = true;
+}
+
+static void install_sigwinch(void)
+{
+	if(!sigwinch_installed){
+		struct sigaction sa;
+		sigwinch_installed = true;
+		sigemptyset(&sa.sa_mask);
+		sa.sa_flags = SA_RESTART;
+		sa.sa_handler = sigwinch_handler;
+		sigaction(SIGWINCH, &sa, NULL);
+	}
 }
 
 static int code_of_color(value x)
@@ -203,12 +240,14 @@ CAMLprim value mlterminal_d_size(value out)
 	int w, h;
 #ifdef __WINNT__
 	HANDLE f = handle_of_descr(out);
+	install_window_input();
 	CONSOLE_SCREEN_BUFFER_INFO info;
 	GetConsoleScreenBufferInfo(f, &info);
 	w = info.dwSize.X;
 	h = info.dwSize.Y;
 #else
 	int f = handle_of_descr(out);
+	install_sigwinch();
 	struct ttysize win;
 	if(ioctl(f, TIOCGSIZE, &win) < 0){
 		failwith("mlterminal_d_size");
@@ -227,11 +266,13 @@ CAMLprim value mlterminal_d_set_size(value out, value w, value h)
 	CAMLparam3(out, w, h);
 #ifdef __WINNT__
 	HANDLE f = handle_of_descr(out);
+	install_window_input();
 	int new_w = Int_val(w);
 	int new_h = Int_val(h);
 	set_size(f, new_w, new_h, f);
 #else
 	int f = handle_of_descr(out);
+	install_sigwinch();
 	struct ttysize win;
 	win.ts_cols = Int_val(w);
 	win.ts_lines = Int_val(h);
@@ -249,6 +290,7 @@ CAMLprim value mlterminal_d_view(value out)
 	int left, top, right, bottom;
 #ifdef __WINNT__
 	HANDLE f = handle_of_descr(out);
+	install_window_input();
 	CONSOLE_SCREEN_BUFFER_INFO info;
 	GetConsoleScreenBufferInfo(f, &info);
 	left = info.srWindow.Left;
@@ -257,6 +299,7 @@ CAMLprim value mlterminal_d_view(value out)
 	bottom = info.srWindow.Bottom;
 #else
 	int f = handle_of_descr(out);
+	install_sigwinch();
 	struct ttysize win;
 	if(ioctl(f, TIOCGSIZE, &win) < 0){
 		failwith("mlterminal_d_view");
@@ -667,6 +710,7 @@ CAMLprim value mlterminal_d_screen(value out, value size, value closure)
 		CONSOLE_TEXTMODE_BUFFER,
 		NULL);
 	if(Is_block(size)){
+		install_window_input();
 		value s = Field(size, 0);
 		int new_w = Int_val(Field(s, 0));
 		int new_h = Int_val(Field(s, 1));
@@ -682,6 +726,7 @@ CAMLprim value mlterminal_d_screen(value out, value size, value closure)
 	write(f, "\x1b""7\x1b[?47h", 8); /* enter_ca_mode */
 	struct ttysize old_win;
 	if(Is_block(size)){
+		install_sigwinch();
 		struct ttysize win;
 		value s = Field(size, 0);
 		if(ioctl(f, TIOCGSIZE, &old_win) < 0){
@@ -937,6 +982,9 @@ CAMLprim value mlterminal_d_is_empty(value in)
 					goto done;
 				}
 				break; /* will skip */
+			case WINDOW_BUFFER_SIZE_EVENT:
+				result = Val_bool(false);
+				goto done;
 			default:
 				; /* will skip */
 			}
@@ -947,7 +995,7 @@ CAMLprim value mlterminal_d_is_empty(value in)
 done:
 #else
 	int f = handle_of_descr(in);
-	result = Val_bool(is_empty(f));
+	result = Val_bool(!resized && is_empty(f));
 #endif
 	CAMLreturn(result);
 }
@@ -989,31 +1037,31 @@ CAMLprim value mlterminal_d_input_event(value in)
 							/* enhanced key */
 							switch(k->wVirtualKeyCode){
 							case VK_LEFT:
-								result = vk(&vk_left, "\x1b[D");
+								result = constant_string(&vk_left, "\x1b[D");
 								break;
 							case VK_UP:
-								result = vk(&vk_up, "\x1b[A");
+								result = constant_string(&vk_up, "\x1b[A");
 								break;
 							case VK_RIGHT:
-								result = vk(&vk_right, "\x1b[C");
+								result = constant_string(&vk_right, "\x1b[C");
 								break;
 							case VK_DOWN:
-								result = vk(&vk_down, "\x1b[B");
+								result = constant_string(&vk_down, "\x1b[B");
 								break;
 							case VK_HOME:
-								result = vk(&vk_home, "\x1b[H");
+								result = constant_string(&vk_home, "\x1b[H");
 								break;
 							case VK_END:
-								result = vk(&vk_end, "\x1b[F");
+								result = constant_string(&vk_end, "\x1b[F");
 								break;
 							case VK_PRIOR:
-								result = vk(&vk_pageup, "\x1b[5~");
+								result = constant_string(&vk_pageup, "\x1b[5~");
 								break;
 							case VK_NEXT:
-								result = vk(&vk_pagedown, "\x1b[6~");
+								result = constant_string(&vk_pagedown, "\x1b[6~");
 								break;
 							case VK_DELETE:
-								result = vk(&vk_delete, "\x1b[3~");
+								result = constant_string(&vk_delete, "\x1b[3~");
 								break;
 							default:
 								/* "\x1b[...Vk" is fictitious escape sequence */
@@ -1023,40 +1071,40 @@ CAMLprim value mlterminal_d_input_event(value in)
 						}else{
 							switch(k->wVirtualKeyCode){
 							case VK_F1:
-								result = vk(&vk_f1, "\x1b[11~");
+								result = constant_string(&vk_f1, "\x1b[11~");
 								break;
 							case VK_F2:
-								result = vk(&vk_f2, "\x1b[12~");
+								result = constant_string(&vk_f2, "\x1b[12~");
 								break;
 							case VK_F3:
-								result = vk(&vk_f3, "\x1b[13~");
+								result = constant_string(&vk_f3, "\x1b[13~");
 								break;
 							case VK_F4:
-								result = vk(&vk_f4, "\x1b[14~");
+								result = constant_string(&vk_f4, "\x1b[14~");
 								break;
 							case VK_F5:
-								result = vk(&vk_f5, "\x1b[15~");
+								result = constant_string(&vk_f5, "\x1b[15~");
 								break;
 							case VK_F6:
-								result = vk(&vk_f6, "\x1b[17~");
+								result = constant_string(&vk_f6, "\x1b[17~");
 								break;
 							case VK_F7:
-								result = vk(&vk_f7, "\x1b[18~");
+								result = constant_string(&vk_f7, "\x1b[18~");
 								break;
 							case VK_F8:
-								result = vk(&vk_f8, "\x1b[19~");
+								result = constant_string(&vk_f8, "\x1b[19~");
 								break;
 							case VK_F9:
-								result = vk(&vk_f9, "\x1b[20~");
+								result = constant_string(&vk_f9, "\x1b[20~");
 								break;
 							case VK_F10:
-								result = vk(&vk_f10, "\x1b[21~");
+								result = constant_string(&vk_f10, "\x1b[21~");
 								break;
 							case VK_F11:
-								result = vk(&vk_f11, "\x1b[23~");
+								result = constant_string(&vk_f11, "\x1b[23~");
 								break;
 							case VK_F12:
-								result = vk(&vk_f12, "\x1b[24~");
+								result = constant_string(&vk_f12, "\x1b[24~");
 								break;
 							default:
 								wsprintf(buf, "\x1b[%dVk", k->wVirtualKeyCode);
@@ -1067,6 +1115,10 @@ CAMLprim value mlterminal_d_input_event(value in)
 					}
 				}
 				break;
+			case WINDOW_BUFFER_SIZE_EVENT:
+				/* "\x1b[Sz" is fictitious escape sequence */
+				result = constant_string(&resized_event, "\x1b[Sz");
+				goto done;
 			default:
 				; /* continue */
 			}
@@ -1075,77 +1127,83 @@ CAMLprim value mlterminal_d_input_event(value in)
 done:
 #else
 	int f = handle_of_descr(in);
-	char buf[64];
-	int i = 0;
-	enum {s_exit, s_init, s_escape, s_O, s_eb, s_ebn} state = s_init;
-	do{
-		ssize_t r = read(f, &buf[i], 1);
-		if(r < 0){
-			failwith("mlterminal_d_input_event(read)");
-		}else if(r == 0){
-			if(state == s_init) caml_raise_end_of_file();
-			state = s_exit;
-		}else{
-			char c = buf[i];
-			++ i;
-			switch(state){
-			case s_init:
-				switch(c){
-				case '\x1b':
-					if(is_empty(f)){
-						state = s_exit; /* escape key */
-					}else{
-						state = s_escape;
+	if(resized){
+		resized = false;
+		/* "\x1b[Sz" is fictitious escape sequence */
+		result = constant_string(&resized_event, "\x1b[Sz");
+	}else{
+		char buf[64];
+		int i = 0;
+		enum {s_exit, s_init, s_escape, s_O, s_eb, s_ebn} state = s_init;
+		do{
+			ssize_t r = read(f, &buf[i], 1);
+			if(r < 0){
+				failwith("mlterminal_d_input_event(read)");
+			}else if(r == 0){
+				if(state == s_init) caml_raise_end_of_file();
+				state = s_exit;
+			}else{
+				char c = buf[i];
+				++ i;
+				switch(state){
+				case s_init:
+					switch(c){
+					case '\x1b':
+						if(is_empty(f)){
+							state = s_exit; /* escape key */
+						}else{
+							state = s_escape;
+						}
+						break;
+					default:
+						state = s_exit;
+					}
+					break;
+				case s_escape:
+					switch(c){
+					case 'O':
+						state = s_O;
+						break;
+					case '[':
+						state = s_eb;
+						break;
+					default:
+						state = s_exit;
+					}
+					break;
+				case s_O:
+					state = s_exit;
+					break;
+				case s_eb:
+					switch(c){
+					case '0': case '1': case '2': case '3': case '4':
+					case '5': case '6': case '7': case '8': case '9':
+						state = s_ebn;
+						break;
+					default:
+						state = s_exit;
+					}
+					break;
+				case s_ebn:
+					switch(c){
+					case '0': case '1': case '2': case '3': case '4':
+					case '5': case '6': case '7': case '8': case '9':
+					case ';':
+						/* keep state */
+						if(i >= (ssize_t)(sizeof(buf) - 1)) state = s_exit;
+						break;
+					default:
+						state = s_exit;
 					}
 					break;
 				default:
 					state = s_exit;
 				}
-				break;
-			case s_escape:
-				switch(c){
-				case 'O':
-					state = s_O;
-					break;
-				case '[':
-					state = s_eb;
-					break;
-				default:
-					state = s_exit;
-				}
-				break;
-			case s_O:
-				state = s_exit;
-				break;
-			case s_eb:
-				switch(c){
-				case '0': case '1': case '2': case '3': case '4':
-				case '5': case '6': case '7': case '8': case '9':
-					state = s_ebn;
-					break;
-				default:
-					state = s_exit;
-				}
-				break;
-			case s_ebn:
-				switch(c){
-				case '0': case '1': case '2': case '3': case '4':
-				case '5': case '6': case '7': case '8': case '9':
-				case ';':
-					/* keep state */
-					if(i >= (ssize_t)(sizeof(buf) - 1)) state = s_exit;
-					break;
-				default:
-					state = s_exit;
-				}
-				break;
-			default:
-				state = s_exit;
 			}
-		}
-	}while(state != s_exit);
-	buf[i] = '\0';
-	result = caml_copy_string(buf);
+		}while(state != s_exit);
+		buf[i] = '\0';
+		result = caml_copy_string(buf);
+	}
 #endif
 	CAMLreturn(result);
 }

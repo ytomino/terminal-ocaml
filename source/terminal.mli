@@ -57,6 +57,11 @@ val is_f: event -> bool;;
 val f_of_event: event -> int;;
 (** Retrun the number of a function key of given event. *)
 
+val is_resized: event -> bool;;
+(** Check whether given event means terminal window has been resized.
+    It install sigwinch handler (on POSIX) or change console mode (on Windows)
+    when calling [size], [set_size], [view] or [screen]. *)
+
 val escape_sequence_of_event: event -> string;;
 (** Represent given event as escape sequence. *)
 

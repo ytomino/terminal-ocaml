@@ -1,5 +1,8 @@
 Terminal.set_input_mode stdin ~echo:false ~canonical:false ();;
 
+let (_: int * int * int * int) = Terminal.Descr.view Unix.stdout;;
+(* install sigwinch handler *)
+
 let write_string fd s =
 	let (_: int) = Unix.write fd s 0 (String.length s) in ();;
 
