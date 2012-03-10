@@ -96,27 +96,45 @@ static void clear_rect(HANDLE f, SMALL_RECT *rect)
 	free(buf);
 }
 
-static value vk_left;
-static value vk_up;
-static value vk_right;
-static value vk_down;
-static value vk_home;
-static value vk_end;
-static value vk_pageup;
-static value vk_pagedown;
-static value vk_delete;
-static value vk_f1;
-static value vk_f2;
-static value vk_f3;
-static value vk_f4;
-static value vk_f5;
-static value vk_f6;
-static value vk_f7;
-static value vk_f8;
-static value vk_f9;
-static value vk_f10;
-static value vk_f11;
-static value vk_f12;
+#define SS_MAX 8
+
+static value key(value *var, int k, unsigned s, char c)
+{
+	if(*var == 0){
+		char buf[256];
+		if(k == 1 && s == 1){
+			wsprintf(buf, "\x1b[%c", c);
+		}else{
+			wsprintf(buf, "\x1b[%d;%d%c", k, s, c);
+		}
+		return constant_string(var, buf);
+	}else{
+		return *var;
+	}
+}
+
+static value vk_up[SS_MAX];
+static value vk_down[SS_MAX];
+static value vk_right[SS_MAX];
+static value vk_left[SS_MAX];
+static value vk_home[SS_MAX];
+static value vk_end[SS_MAX];
+static value vk_insert[SS_MAX];
+static value vk_delete[SS_MAX];
+static value vk_pageup[SS_MAX];
+static value vk_pagedown[SS_MAX];
+static value vk_f1[SS_MAX];
+static value vk_f2[SS_MAX];
+static value vk_f3[SS_MAX];
+static value vk_f4[SS_MAX];
+static value vk_f5[SS_MAX];
+static value vk_f6[SS_MAX];
+static value vk_f7[SS_MAX];
+static value vk_f8[SS_MAX];
+static value vk_f9[SS_MAX];
+static value vk_f10[SS_MAX];
+static value vk_f11[SS_MAX];
+static value vk_f12[SS_MAX];
 
 #else
 
@@ -1015,104 +1033,128 @@ CAMLprim value mlterminal_d_input_event(value in)
 		}else if(r == 0){
 			caml_raise_end_of_file(); /* ??? */
 		}else{
+			PKEY_EVENT_RECORD k;
 			switch(input_record.EventType){
 			case KEY_EVENT:
-				{
-					PKEY_EVENT_RECORD k = &input_record.Event.KeyEvent;
-					if(k->bKeyDown){
-						if(k->uChar.UnicodeChar != '\0'){
-							char buf[7];
-							int length = WideCharToMultiByte(
-								CP_UTF8,
-								0,
-								&k->uChar.UnicodeChar,
-								1,
-								buf,
-								7,
-								NULL,
-								NULL);
-							buf[length] = '\0';
-							result = caml_copy_string(buf);
-						}else if(k->dwControlKeyState & ENHANCED_KEY){
+				k = &input_record.Event.KeyEvent;
+				if(k->bKeyDown){
+					if(k->uChar.UnicodeChar != '\0'){
+						char buf[7];
+						int length = WideCharToMultiByte(
+							CP_UTF8,
+							0,
+							&k->uChar.UnicodeChar,
+							1,
+							buf,
+							7,
+							NULL,
+							NULL);
+						buf[length] = '\0';
+						result = caml_copy_string(buf);
+					}else{
+						int index = 0;
+						unsigned s = 1; /* shift state */
+						if(k->dwControlKeyState & SHIFT_PRESSED){
+							index |= 1;
+							s += 1;
+						}
+						if(k->dwControlKeyState
+							& (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED))
+						{
+							index |= 2;
+							s += 4;
+						}
+						if(k->dwControlKeyState
+							& (LEFT_ALT_PRESSED | RIGHT_ALT_PRESSED))
+						{
+							index |= 4;
+							s += 8;
+						}
+						if(k->dwControlKeyState & ENHANCED_KEY){
 							/* enhanced key */
 							switch(k->wVirtualKeyCode){
-							case VK_LEFT:
-								result = constant_string(&vk_left, "\x1b[D");
-								break;
 							case VK_UP:
-								result = constant_string(&vk_up, "\x1b[A");
-								break;
-							case VK_RIGHT:
-								result = constant_string(&vk_right, "\x1b[C");
+								result = key(&vk_up[index], 1, s, 'A');
 								break;
 							case VK_DOWN:
-								result = constant_string(&vk_down, "\x1b[B");
+								result = key(&vk_down[index], 1, s, 'B');
+								break;
+							case VK_RIGHT:
+								result = key(&vk_right[index], 1, s, 'C');
+								break;
+							case VK_LEFT:
+								result = key(&vk_left[index], 1, s, 'D');
 								break;
 							case VK_HOME:
-								result = constant_string(&vk_home, "\x1b[H");
+								result = key(&vk_home[index], 1, s, 'H');
 								break;
 							case VK_END:
-								result = constant_string(&vk_end, "\x1b[F");
+								result = key(&vk_end[index], 1, s, 'F');
 								break;
-							case VK_PRIOR:
-								result = constant_string(&vk_pageup, "\x1b[5~");
-								break;
-							case VK_NEXT:
-								result = constant_string(&vk_pagedown, "\x1b[6~");
+							case VK_INSERT:
+								result = key(&vk_insert[index], 2, s, '~');
 								break;
 							case VK_DELETE:
-								result = constant_string(&vk_delete, "\x1b[3~");
+								result = key(&vk_delete[index], 3, s, '~');
+								break;
+							case VK_PRIOR:
+								result = key(&vk_pageup[index], 5, s, '~');
+								break;
+							case VK_NEXT:
+								result = key(&vk_pagedown[index], 6, s, '~');
 								break;
 							default:
 								/* "\x1b[...Vk" is fictitious escape sequence */
-								wsprintf(buf, "\x1b[E;%dVk", k->wVirtualKeyCode);
+								wsprintf(buf, "\x1b[%d;%dVk", k->wVirtualKeyCode,
+									s + 0x100); /* ENHANCED_KEY = 0x100 */
 								result = caml_copy_string(buf);
 							}
 						}else{
 							switch(k->wVirtualKeyCode){
 							case VK_F1:
-								result = constant_string(&vk_f1, "\x1b[11~");
+								result = key(&vk_f1[index], 11, s, '~');
 								break;
 							case VK_F2:
-								result = constant_string(&vk_f2, "\x1b[12~");
+								result = key(&vk_f2[index], 12, s, '~');
 								break;
 							case VK_F3:
-								result = constant_string(&vk_f3, "\x1b[13~");
+								result = key(&vk_f3[index], 13, s, '~');
 								break;
 							case VK_F4:
-								result = constant_string(&vk_f4, "\x1b[14~");
+								result = key(&vk_f4[index], 14, s, '~');
 								break;
 							case VK_F5:
-								result = constant_string(&vk_f5, "\x1b[15~");
+								result = key(&vk_f5[index], 15, s, '~');
 								break;
 							case VK_F6:
-								result = constant_string(&vk_f6, "\x1b[17~");
+								result = key(&vk_f6[index], 17, s, '~');
 								break;
 							case VK_F7:
-								result = constant_string(&vk_f7, "\x1b[18~");
+								result = key(&vk_f7[index], 18, s, '~');
 								break;
 							case VK_F8:
-								result = constant_string(&vk_f8, "\x1b[19~");
+								result = key(&vk_f8[index], 19, s, '~');
 								break;
 							case VK_F9:
-								result = constant_string(&vk_f9, "\x1b[20~");
+								result = key(&vk_f9[index], 20, s, '~');
 								break;
 							case VK_F10:
-								result = constant_string(&vk_f10, "\x1b[21~");
+								result = key(&vk_f10[index], 21, s, '~');
 								break;
 							case VK_F11:
-								result = constant_string(&vk_f11, "\x1b[23~");
+								result = key(&vk_f11[index], 23, s, '~');
 								break;
 							case VK_F12:
-								result = constant_string(&vk_f12, "\x1b[24~");
+								result = key(&vk_f12[index], 24, s, '~');
 								break;
 							default:
-								wsprintf(buf, "\x1b[%dVk", k->wVirtualKeyCode);
+								/* "\x1b[...Vk" is fictitious escape sequence */
+								wsprintf(buf, "\x1b[%d;%dVk", k->wVirtualKeyCode, s);
 								result = caml_copy_string(buf);
 							}
 						}
-						goto done;
 					}
+					goto done;
 				}
 				break;
 			case WINDOW_BUFFER_SIZE_EVENT:
@@ -1134,7 +1176,7 @@ done:
 	}else{
 		char buf[64];
 		int i = 0;
-		enum {s_exit, s_init, s_escape, s_O, s_eb, s_ebn} state = s_init;
+		enum {s_exit, s_init, s_escape, s_escape_param} state = s_init;
 		do{
 			ssize_t r = read(f, &buf[i], 1);
 			if(r < 0){
@@ -1161,30 +1203,14 @@ done:
 					break;
 				case s_escape:
 					switch(c){
-					case 'O':
-						state = s_O;
-						break;
-					case '[':
-						state = s_eb;
+					case 'O': case '[':
+						state = s_escape_param;
 						break;
 					default:
 						state = s_exit;
 					}
 					break;
-				case s_O:
-					state = s_exit;
-					break;
-				case s_eb:
-					switch(c){
-					case '0': case '1': case '2': case '3': case '4':
-					case '5': case '6': case '7': case '8': case '9':
-						state = s_ebn;
-						break;
-					default:
-						state = s_exit;
-					}
-					break;
-				case s_ebn:
+				case s_escape_param:
 					switch(c){
 					case '0': case '1': case '2': case '3': case '4':
 					case '5': case '6': case '7': case '8': case '9':

@@ -21,14 +21,17 @@ val magenta: color;;
 val yellow: color;;
 val white: color;;
 
-type event = private string;;
-
 val set_title: string -> unit;;
 (** Set title to a local encoded string.
     On POSIX, it's no effect. *)
 val set_title_utf8: string -> unit;;
 (** Set title to a UTF-8 encoded string.
     On POSIX, it's no effect. *)
+
+type event = private string;;
+
+val escape_sequence_of_event: event -> string;;
+(** Represent given event as escape sequence. *)
 
 val is_char: event -> bool;;
 (** Check whether given event contains a char or not. *)
@@ -40,30 +43,54 @@ val is_string: event -> bool;;
 val string_of_event: event -> string;;
 (** Retrun a string of given event. *)
 
-val is_left: event -> bool;;
-val is_up: event -> bool;;
-val is_right: event -> bool;;
-val is_down: event -> bool;;
-
-val is_home: event -> bool;;
-val is_end: event -> bool;;
-val is_pageup: event -> bool;;
-val is_pagedown: event -> bool;;
-
-val is_delete: event -> bool;;
-
-val is_f: event -> bool;;
-(** Check whether given event contains a function key or not. *)
-val f_of_event: event -> int;;
-(** Retrun the number of a function key of given event. *)
-
 val is_resized: event -> bool;;
 (** Check whether given event means terminal window has been resized.
     It install sigwinch handler (on POSIX) or change console mode (on Windows)
     when calling [size], [set_size], [view] or [screen]. *)
 
-val escape_sequence_of_event: event -> string;;
-(** Represent given event as escape sequence. *)
+type key = [
+	| `up
+	| `down
+	| `right
+	| `left
+	| `home
+	| `end_key
+	| `insert
+	| `delete
+	| `pageup
+	| `pagedown
+	| `f1
+	| `f2
+	| `f3
+	| `f4
+	| `f5
+	| `f6
+	| `f7
+	| `f8
+	| `f9
+	| `f10
+	| `f11
+	| `f12];;
+
+type shift_state = private int;;
+
+val is_key: event -> bool;;
+(** Check whether given event contains a key or not. *)
+val key_of_event: event -> [key | `unknown];;
+(** Retrun a key of given event. *)
+val shift_of_event: event -> shift_state;;
+(** Retrun shift state of given event. *)
+
+type shift_key = private int;;
+
+val empty: shift_state;;
+
+val shift: shift_key;;
+val control: shift_key;;
+val alt: shift_key;;
+
+val mem: shift_key -> shift_state -> bool;;
+external add: shift_key -> shift_state -> shift_state = "%orint";;
 
 module Descr: sig
 	open Unix;;

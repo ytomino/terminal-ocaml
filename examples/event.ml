@@ -20,25 +20,88 @@ while !playing do
 	) else (
 		let ev = Terminal.Descr.input_event Unix.stdin in
 		let seq = Terminal.escape_sequence_of_event ev in
+		let desc = ref "" in
+		if Terminal.is_key ev then (
+			let ss = Terminal.shift_of_event ev in
+			if Terminal.mem Terminal.shift ss then (
+				desc := !desc ^ "shift+";
+			);
+			if Terminal.mem Terminal.control ss then (
+				desc := !desc ^ "control+";
+			);
+			if Terminal.mem Terminal.alt ss then (
+				desc := !desc ^ "alt+";
+			);
+			begin match Terminal.key_of_event ev with
+			| `up ->
+				desc := !desc ^ "up";
+				dx := 0;
+				dy := -1
+			| `down ->
+				desc := !desc ^ "down";
+				dx := 0;
+				dy := 1
+			| `right ->
+				desc := !desc ^ "right";
+				dx := 1;
+				dy := 0
+			| `left ->
+				desc := !desc ^ "left";
+				dx := -1;
+				dy := 0
+			| `home ->
+				desc := !desc ^ "home"
+			| `end_key ->
+				desc := !desc ^ "end"
+			| `pageup ->
+				desc := !desc ^ "pageup"
+			| `pagedown ->
+				desc := !desc ^ "pagedown"
+			| `insert ->
+				desc := !desc ^ "insert"
+			| `delete ->
+				desc := !desc ^ "delete"
+			| `f1 ->
+				desc := !desc ^ "F1"
+			| `f2 ->
+				desc := !desc ^ "F2"
+			| `f3 ->
+				desc := !desc ^ "F3"
+			| `f4 ->
+				desc := !desc ^ "F4"
+			| `f5 ->
+				desc := !desc ^ "F5"
+			| `f6 ->
+				desc := !desc ^ "F6"
+			| `f7 ->
+				desc := !desc ^ "F7"
+			| `f8 ->
+				desc := !desc ^ "F8"
+			| `f9 ->
+				desc := !desc ^ "F9"
+			| `f10 ->
+				desc := !desc ^ "F10"
+			| `f11 ->
+				desc := !desc ^ "F11"
+			| `f12 ->
+				desc := !desc ^ "F12"
+			| `unknown ->
+				desc := !desc ^ "unknown"
+			end
+		) else if Terminal.is_resized ev then (
+			desc := "resized"
+		) else if Terminal.is_char ev then (
+			let c = Terminal.char_of_event ev in
+			desc := "'" ^ Char.escaped c ^ "'";
+			if c = '\x1b' then playing := false
+		) else if Terminal.is_string ev then (
+			let c = Terminal.string_of_event ev in
+			desc := "\"" ^ String.escaped c ^ "\""
+		);
 		Terminal.Descr.save Unix.stdout (fun () ->
 			Terminal.Descr.color Unix.stdout ~foreground:Terminal.red ();
 			Terminal.Descr.set_position Unix.stdout 0 0;
-			write_string Unix.stdout ("{" ^ String.escaped seq ^ "}");
-		);
-		if Terminal.is_up ev then (
-			dx := 0;
-			dy := -1
-		) else if Terminal.is_down ev then (
-			dx := 0;
-			dy := 1
-		) else if Terminal.is_right ev then (
-			dx := 1;
-			dy := 0
-		) else if Terminal.is_left ev then (
-			dx := -1;
-			dy := 0
-		) else if Terminal.is_char ev && Terminal.char_of_event ev = '\x1b' then (
-			playing := false
+			write_string Unix.stdout ("{" ^ String.escaped seq ^ "}" ^ !desc ^ " ");
 		)
 	)
 done;;

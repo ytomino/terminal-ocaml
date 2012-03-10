@@ -21,14 +21,14 @@ let magenta: color      = {red = 1; green = 0; blue = 1; intensity = 1};;
 let cyan: color         = {red = 0; green = 1; blue = 1; intensity = 1};;
 let white: color        = {red = 1; green = 1; blue = 1; intensity = 1};;
 
-type event = string;;
-
-let event_buf: event = String.create 64;;
-
 external set_title: string -> unit =
 	"mlterminal_set_title";;
 external set_title_utf8: string -> unit =
 	"mlterminal_set_title_utf8";;
+
+type event = string;;
+
+let escape_sequence_of_event ev = ev;;
 
 let is_char ev = (
 	String.length ev = 1
@@ -49,99 +49,158 @@ let string_of_event ev = (
 	ev
 );;
 
-let is_left ev = (
-	match ev with
-	| "\x1bOD" | "\x1b[D" -> true
-	| _ -> false
-);;
-
-let is_up ev = (
-	match ev with
-	| "\x1bOA" | "\x1b[A" -> true
-	| _ -> false
-);;
-
-let is_right ev = (
-	match ev with
-	| "\x1bOC" | "\x1b[C" -> true
-	| _ -> false
-);;
-
-let is_down ev = (
-	match ev with
-	| "\x1bOB" | "\x1b[B" -> true
-	| _ -> false
-);;
-
-let is_home ev = (
-	match ev with
-	| "\x1b[H" -> true
-	| _ -> false
-);;
-
-let is_end ev = (
-	match ev with
-	| "\x1b[E" -> true
-	| _ -> false
-);;
-
-let is_pageup ev = (
-	match ev with
-	| "\x1b[5~" -> true
-	| _ -> false
-);;
-
-let is_pagedown ev = (
-	match ev with
-	| "\x1b[6~" -> true
-	| _ -> false
-);;
-
-let is_delete ev = (
-	match ev with
-	| "\x1b[3~" -> true
-	| _ -> false
-);;
-
-let is_f ev = (
-	String.length ev = 5
-	&& ev.[0] = '\x1b'
-	&& ev.[1] = '['
-	&& (let c = ev.[2] in c >= '0' && c <= '9')
-	&& (let c = ev.[3] in c >= '0' && c <= '9')
-	&& ev.[4] = '~'
-	&& (
-		let n = (int_of_char ev.[2] - int_of_char '0') * 10
-			+ int_of_char ev.[3] - int_of_char '0'
-		in
-		(n >= 11 && n <= 15) || (n >= 17 && n <= 21) || (n >= 23 && n <= 24))
-);;
-
-let f_of_event ev = (
-	assert (is_f ev);
-	match ev with
-	| "\x1b[11~" -> 1
-	| "\x1b[12~" -> 2
-	| "\x1b[13~" -> 3
-	| "\x1b[14~" -> 4
-	| "\x1b[15~" -> 5
-	| "\x1b[17~" -> 6
-	| "\x1b[18~" -> 7
-	| "\x1b[19~" -> 8
-	| "\x1b[20~" -> 9
-	| "\x1b[21~" -> 10
-	| "\x1b[23~" -> 11
-	| "\x1b[24~" -> 12
-	| _ -> assert false
-);;
-
 let is_resized ev = (
 	match ev with
 	| "\x1b[Sz" -> true
 	| _ -> false
 );;
 
-let escape_sequence_of_event ev = ev;;
+type key = [
+	| `up
+	| `down
+	| `right
+	| `left
+	| `home
+	| `end_key
+	| `insert
+	| `delete
+	| `pageup
+	| `pagedown
+	| `f1
+	| `f2
+	| `f3
+	| `f4
+	| `f5
+	| `f6
+	| `f7
+	| `f8
+	| `f9
+	| `f10
+	| `f11
+	| `f12];;
+
+type shift_state = int;;
+
+let is_digit c = c >= '0' && c <= '9';;
+
+let rec take_digits s start = (
+	if String.length s <= start || not (is_digit s.[start]) then start else
+	take_digits s (start + 1)
+);;
+
+let read_digits = (
+	let rec loop init s start length = (
+		if length <= 0 then init else
+		let n = int_of_char s.[start] - int_of_char '0' in
+		loop (init * 10 + n) s (start + 1) (length - 1)
+	) in
+	loop 0
+);;
+
+let parse (f: int -> int -> char -> 'a) (bad: 'a) (ev: string): 'a = (
+	let length = String.length ev in
+	if length < 3 || ev.[0] <> '\x1b' then bad else
+	begin match ev.[1] with
+	| 'O' ->
+		if length <> 3 then bad else
+		f 1 1 ev.[2]
+	| '[' ->
+		let p1s = 2 in
+		let p1e = take_digits ev p1s in
+		if p1e >= length then bad else
+		let k = if p1s = p1e then 1 else read_digits ev p1s (p1e - p1s) in
+		if ev.[p1e] <> ';' then (
+			if p1e <> length - 1 then bad else
+			let c = ev.[p1e] in
+			if c = '~' then f k 1 ev.[p1e] else f 1 k ev.[p1e]
+		) else (
+			let p2s = p1e + 1 in
+			let p2e = take_digits ev p2s in
+			let s = if p2s = p2e then 1 else read_digits ev p2s (p2e - p2s) in
+			if p2e <> length - 1 then (
+				if p2e = length - 2 && ev.[p2e] = 'V' && ev.[p2e + 1] = 'k' then (
+					f k s '@' (* fictitious, k is virtual key code *)
+				) else (
+					bad
+				)
+			) else (
+				f k s ev.[p2e]
+			)
+		)
+	| _ ->
+		bad
+	end
+);;
+
+let is_key = parse (fun _ _ _ -> true) false;;
+
+let key_of_event = parse
+	(fun k _ c ->
+		begin match k with
+		| 1 ->
+			begin match c with
+			| 'A' -> `up
+			| 'B' -> `down
+			| 'C' -> `right
+			| 'D' -> `left
+			| 'F' -> `end_key
+			| 'H' -> `home
+			| 'P' -> `f1
+			| 'Q' -> `f2
+			| 'R' -> `f3
+			| 'S' -> `f4
+			| _ -> `unknown
+			end
+		| 2 when c = '~'->
+			`insert
+		| 3 when c = '~' ->
+			`delete
+		| 5 when c = '~' ->
+			`pageup
+		| 6 when c = '~' ->
+			`pagedown
+		| 11 when c = '~' ->
+			`f1
+		| 12 when c = '~' ->
+			`f2
+		| 13 when c = '~' ->
+			`f3
+		| 14 when c = '~' ->
+			`f4
+		| 15 when c = '~' ->
+			`f5
+		| 17 when c = '~' ->
+			`f6
+		| 18 when c = '~' ->
+			`f7
+		| 19 when c = '~' ->
+			`f8
+		| 20 when c = '~' ->
+			`f9
+		| 21 when c = '~' ->
+			`f10
+		| 23 when c = '~' ->
+			`f11
+		| 24 when c = '~' ->
+			`f12
+		| _ ->
+			`unknown
+		end
+	)
+	`unknown;;
+
+let shift_of_event = parse (fun _ s _ -> s - 1) 0;;
+
+type shift_key = int;;
+
+let empty = 0;;
+
+let shift = 1;;
+let control = 4;;
+let alt = 8;;
+
+let mem sk ss = sk land ss <> 0;;
+external add: shift_key -> shift_state -> shift_state = "%orint";;
 
 module Descr = struct
 	open Unix;;
