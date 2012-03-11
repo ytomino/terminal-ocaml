@@ -10,6 +10,11 @@
        http://msdn.microsoft.com/en-us/library/windows/desktop/
          ms682087(v=vs.85).aspx *)
 
+external set_title: string -> unit =
+	"mlterminal_set_title";;
+external set_title_utf8: string -> unit =
+	"mlterminal_set_title_utf8";;
+
 type color = {
 	red: int;
 	green: int;
@@ -32,11 +37,6 @@ let blue: color         = {red = 0; green = 0; blue = 1; intensity = 1};;
 let magenta: color      = {red = 1; green = 0; blue = 1; intensity = 1};;
 let cyan: color         = {red = 0; green = 1; blue = 1; intensity = 1};;
 let white: color        = {red = 1; green = 1; blue = 1; intensity = 1};;
-
-external set_title: string -> unit =
-	"mlterminal_set_title";;
-external set_title_utf8: string -> unit =
-	"mlterminal_set_title_utf8";;
 
 type event = string;;
 
@@ -341,6 +341,7 @@ module Descr = struct
 	
 	external is_empty: file_descr -> bool =
 		"mlterminal_d_is_empty";;
+	
 	external input_event: file_descr -> event =
 		"mlterminal_d_input_event";;
 	

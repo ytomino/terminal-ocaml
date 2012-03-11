@@ -20,7 +20,7 @@ export CAML_LD_LIBRARY_PATH=$(BUILDDIR)/stublibs
 
 ITEMS=$(basename $(wildcard *.ml))
 
-.PHONY: all all-byte all-opt interactive clean $(addprefix test-,$(ITEMS))
+.PHONY: all all-byte all-opt interactive man clean $(addprefix test-,$(ITEMS))
 
 all: all-byte all-opt
 
@@ -58,6 +58,11 @@ interactive: $(BUILDDIR)/terminal.cma
 
 $(BUILDDIR)/terminal.cma $(BUILDDIR)/terminal.cmxa: $(wildcard ../source/terminal*)
 	make -C ../source -f makefile install DESTDIR=$(abspath $(BUILDDIR))
+
+man: ../source/terminal.mli
+	-mkdir $(TMPDIR)/man3
+	ocamldoc -man -man-mini -d $(TMPDIR)/man3 $<
+	MANPATH=$(TMPDIR) man Terminal
 
 clean:
 	make -C ../source clean

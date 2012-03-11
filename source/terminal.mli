@@ -1,3 +1,16 @@
+(** Terminal library for Objective-Caml *)
+
+(** {6 Title} *)
+
+val set_title: string -> unit;;
+(** Set title to given local encoded string.
+    On POSIX, it's no effect. *)
+val set_title_utf8: string -> unit;;
+(** Set title to given UTF-8 encoded string.
+    On POSIX, it's no effect. *)
+
+(** {6 Color type and values} *)
+
 type color = {
 	red: int;
 	green: int;
@@ -21,14 +34,11 @@ val magenta: color;;
 val yellow: color;;
 val white: color;;
 
-val set_title: string -> unit;;
-(** Set title to a local encoded string.
-    On POSIX, it's no effect. *)
-val set_title_utf8: string -> unit;;
-(** Set title to a UTF-8 encoded string.
-    On POSIX, it's no effect. *)
+(** {6 Event} *)
 
 type event = private string;;
+(** Event. One of inputed char or string, the terminal window is resized,
+    any special key is typed, any mouse button is clicked or others. *)
 
 val escape_sequence_of_event: event -> string;;
 (** Represent given event as escape sequence. *)
@@ -71,8 +81,10 @@ type key = [
 	| `f10
 	| `f11
 	| `f12];;
+(** Key. *)
 
 type shift_state = private int;;
+(** Set of [shift_key]. *)
 
 val is_key: event -> bool;;
 (** Check whether given event contains a key or not. *)
@@ -81,18 +93,22 @@ val key_of_event: event -> [key | `unknown];;
 val shift_of_event: event -> shift_state;;
 (** Retrun shift state of given event.
     [shift_of_event] works for key event and also mouse clicked event.
-    But a modifier+Click is normally unavailable because popup menu. *)
+    But modifier+Click is normally unavailable because popup menu. *)
 
 type shift_key = private int;;
+(** One of shift key, control key or alt(meta) key. *)
 
 val empty: shift_state;;
+(** The empty set. *)
 
 val shift: shift_key;;
 val control: shift_key;;
 val alt: shift_key;;
 
 val mem: shift_key -> shift_state -> bool;;
+(** [mem a s] is true if [a] is included in [s]. *)
 external add: shift_key -> shift_state -> shift_state = "%orint";;
+(** [add a s] returns a set containing all elements of [s] and [a]. *)
 
 type button = [
 	| `button1
@@ -101,13 +117,16 @@ type button = [
 	| `wheelup
 	| `wheeldown
 	| `released];;
+(** Mouse button. *)
 
 val is_clicked: event -> bool;;
-(** Check whether given event means the mouse is clicked. *)
+(** Check whether given event means a mouse button is clicked. *)
 val button_of_event: event -> [button | `unknown];;
-(** Return a button of given event. *)
+(** Return a clicked mouse button of given event. *)
 val position_of_event: event -> int * int;;
 (** Retrun mouse position of given event. *)
+
+(** {6 Operations for Unix.file_descr} *)
 
 module Descr: sig
 	open Unix;;
@@ -175,19 +194,36 @@ module Descr: sig
 	(** Read one event from given file descripter. *)
 	
 end;;
+(** Operations for Unix.file_descr.
+    [Descr.anyf fd] is equal to [anyf (Unix.out_channel_of_descr fd)]
+    or [anyf (Unix.in_channel_of_descr fd)].
+    This module has additional function [is_empty] and [input_event].
+    for event handling. *)
+
+(** {6 Operations for output channel} *)
 
 val is_terminal: out_channel -> bool;;
+(** [is_terminal oc] returns true if given output channel is associated
+    to terminal. *)
 
 val size: out_channel -> int * int;;
+(** [size oc] gets size of current screen buffer. *)
 val set_size: out_channel -> int -> int -> unit;;
+(** [set_size oc width height] sets size of current screen buffer. *)
 
 val view: out_channel -> int * int * int * int;;
-(** Get range of current view port that is a part of the screen buffer. *)
+(** [view oc] gets range of current view port that is a part of
+    current screen buffer. *)
 
 val position: out_channel -> int * int;;
+(** [position oc] gets the cursor position in absolute coordinates. *)
 val set_position: out_channel -> int -> int -> unit;;
+(** [set_position oc x y] moves the cursor in absolute coordinates. *)
 val move: out_channel -> int -> int -> unit;;
+(** [move oc x y] moves the cursor in relative coordinates
+    from current position. *)
 val move_to_bol: out_channel -> unit -> unit;;
+(** [move_to_bol oc ()] moves the cursor to the begin of line. *)
 
 val color:
 	out_channel ->
@@ -201,29 +237,35 @@ val color:
 	?background:color ->
 	unit ->
 	unit;;
+(** [color oc ~reset ~bold ~underscore ~blink ~reverse ~concealed ~foreground
+    ~background ()] sets a color to write new text. *)
 
 val save: out_channel -> (unit -> 'a) -> 'a;;
-(** Save and restore current position and color. *)
+(** [save oc f] saves and restores current position and color. *)
 
 val clear_screen: out_channel -> unit -> unit;;
+(** [clear_screen oc ()] clears all of given screen buffer. *)
 val clear_eol: out_channel -> unit -> unit;;
+(** [clear_eol oc ()] clears from the cursor position to the end of line. *)
 val clear_line: out_channel -> unit -> unit;;
-(** This is a shorthand for move_to_bol and clear_eol. *)
+(** [clear_line oc ()] is a shorthand of [move_to_bol oc ()]
+    and then [clear_eol oc ()]. *)
 
 val scroll: out_channel -> int -> unit;;
-(** Scroll contents in view port. *)
+(** [scroll oc y] scrolls contents in view port. *)
 
 val show_cursor: out_channel -> bool -> unit;;
-(* [show_cursor oc flag] show or hide the cursor. *)
+(** [show_cursor oc flag] show or hide the cursor. *)
 val wrap: out_channel -> bool -> unit;;
-(* [wrap oc flag] enables or disables line wrapping. *)
+(** [wrap oc flag] enables or disables line wrapping. *)
 
 val screen:
 	out_channel ->
 	?size:(int * int) ->
 	(out_channel -> 'a) ->
 	'a;;
-(** Save current screen, use new screen and restore old screen. *)
+(** [screen oc ~size f] saves current screen buffer,
+    uses new screen buffer and restore old it. *)
 
 val output_utf8: out_channel -> string -> int -> int -> unit;;
 (** Write a part of a UTF-8 encoded string to the given output channel.
@@ -231,6 +273,8 @@ val output_utf8: out_channel -> string -> int -> int -> unit;;
 val output_string_utf8: out_channel -> string -> unit;;
 (** Write a UTF-8 encoded string to the given output channel.
     On POSIX, It's same as [Pervasives.output_string]. *)
+
+(** {6 Operations for input channel} *)
 
 val mode:
 	in_channel ->
