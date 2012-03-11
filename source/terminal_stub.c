@@ -3,6 +3,7 @@
 #include <caml/fail.h>
 #include <caml/memory.h>
 #include <caml/mlvalues.h>
+#include <caml/signals.h>
 #include <caml/unixsupport.h>
 
 #include <stdbool.h>
@@ -904,7 +905,10 @@ CAMLprim value mlterminal_d_input_line_utf8(
 	for(;;){
 		WCHAR *p = wide_buf + wide_length;
 		DWORD r;
-		if(!ReadConsoleW(f, p, 1, &r, NULL)){
+		caml_enter_blocking_section();
+		bool succeeded = ReadConsoleW(f, p, 1, &r, NULL);
+		caml_leave_blocking_section();
+		if(!succeeded){
 			free(wide_buf);
 			if(wide_length == 0) goto normal_file; /* redirected */
 			failwith("mlterminal_d_input_line_utf8");
@@ -948,7 +952,10 @@ normal_file:
 	for(;;){
 		char *p = buf + length;
 		DWORD r;
-		if(!ReadFile(f, p, 1, &r, NULL)){
+		caml_enter_blocking_section();
+		bool succeeded = ReadFile(f, p, 1, &r, NULL);
+		caml_leave_blocking_section();
+		if(!succeeded){
 			free(buf);
 			failwith("mlterminal_d_input_line_utf8");
 		}
@@ -982,7 +989,9 @@ make_result:
 	if(buf == NULL) caml_raise_out_of_memory();
 	for(;;){
 		char *p = buf + length;
+		caml_enter_blocking_section();
 		ssize_t r = read(f, p, 1);
+		caml_leave_blocking_section();
 		if(r < 0){
 			free(buf);
 			failwith("mlterminal_d_input_line_utf8");
@@ -1056,7 +1065,10 @@ CAMLprim value mlterminal_d_input_event(value in)
 	DWORD r;
 	char buf[256];
 	for(;;){
-		if(!ReadConsoleInputW(f, &input_record, 1, &r)){
+		caml_enter_blocking_section();
+		bool succeeded = ReadConsoleInputW(f, &input_record, 1, &r);
+		caml_leave_blocking_section();
+		if(!succeeded){
 			failwith("mlterminal_d_input_event(ReadConsoleInputW)");
 		}else if(r == 0){
 			caml_raise_end_of_file(); /* ??? */
@@ -1205,9 +1217,11 @@ done:
 		enum {s_exit, s_init, s_escape, s_escape_param} state = s_init;
 		do{
 			bool break_on_sigwinch = i == 0 && sigwinch_installed;
+			caml_enter_blocking_section();
 			if(break_on_sigwinch) set_restart_on_sigwinch(false);
 			ssize_t r = read(f, &buf[i], 1);
 			if(break_on_sigwinch) set_restart_on_sigwinch(true);
+			caml_leave_blocking_section();
 			if(r < 0){
 				if(errno == EINTR && break_on_sigwinch && resized) goto resized;
 				failwith("mlterminal_d_input_event(read)");
