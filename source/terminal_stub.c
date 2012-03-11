@@ -8,17 +8,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-static value constant_string(value *var, char const *s)
-{
-	if(*var == 0){
-		caml_register_global_root(var);
-		*var = caml_copy_string(s);
-	}
-	return *var;
-}
-
-static value resized_event;
-
 #ifdef __WINNT__
 
 #define WIN32_LEAN_AND_MEAN
@@ -96,8 +85,6 @@ static void clear_rect(HANDLE f, SMALL_RECT *rect)
 	free(buf);
 }
 
-#define SS_MAX 8
-
 static value key(value *var, int k, unsigned s, char c)
 {
 	if(*var == 0){
@@ -107,11 +94,13 @@ static value key(value *var, int k, unsigned s, char c)
 		}else{
 			wsprintf(buf, "\x1b[%d;%d%c", k, s, c);
 		}
-		return constant_string(var, buf);
-	}else{
-		return *var;
+		caml_register_global_root(var);
+		*var = caml_copy_string(buf);
 	}
+	return *var;
 }
+
+#define SS_MAX 8
 
 static value vk_up[SS_MAX];
 static value vk_down[SS_MAX];
@@ -138,6 +127,7 @@ static value vk_f12[SS_MAX];
 
 #else
 
+#include <errno.h>
 #include <stdio.h>
 #include <signal.h>
 #include <termios.h>
@@ -168,6 +158,15 @@ static void install_sigwinch(void)
 		sa.sa_handler = sigwinch_handler;
 		sigaction(SIGWINCH, &sa, NULL);
 	}
+}
+
+static void set_restart_on_sigwinch(bool restart)
+{
+	struct sigaction sa;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = restart ? SA_RESTART : 0;
+	sa.sa_handler = sigwinch_handler;
+	sigaction(SIGWINCH, &sa, NULL);
 }
 
 static int code_of_color(value x)
@@ -1188,7 +1187,7 @@ CAMLprim value mlterminal_d_input_event(value in)
 				break;
 			case WINDOW_BUFFER_SIZE_EVENT:
 				/* "\x1b[Sz" is fictitious escape sequence */
-				result = constant_string(&resized_event, "\x1b[Sz");
+				result = caml_copy_string("\x1b[Sz");
 				goto done;
 			default:
 				; /* continue */
@@ -1199,16 +1198,18 @@ done:
 #else
 	int f = handle_of_descr(in);
 	if(resized){
-		resized = false;
-		/* "\x1b[Sz" is fictitious escape sequence */
-		result = constant_string(&resized_event, "\x1b[Sz");
+		goto resized;
 	}else{
 		char buf[64];
 		int i = 0;
 		enum {s_exit, s_init, s_escape, s_escape_param} state = s_init;
 		do{
+			bool break_on_sigwinch = i == 0 && sigwinch_installed;
+			if(break_on_sigwinch) set_restart_on_sigwinch(false);
 			ssize_t r = read(f, &buf[i], 1);
+			if(break_on_sigwinch) set_restart_on_sigwinch(true);
 			if(r < 0){
+				if(errno == EINTR && break_on_sigwinch && resized) goto resized;
 				failwith("mlterminal_d_input_event(read)");
 			}else if(r == 0){
 				if(state == s_init) caml_raise_end_of_file();
@@ -1259,6 +1260,12 @@ done:
 		buf[i] = '\0';
 		result = caml_copy_string(buf);
 	}
+	goto done;
+resized:
+	resized = false;
+	/* "\x1b[Sz" is fictitious escape sequence */
+	result = caml_copy_string("\x1b[Sz");
+done:
 #endif
 	CAMLreturn(result);
 }
