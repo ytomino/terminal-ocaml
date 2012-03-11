@@ -484,7 +484,7 @@ CAMLprim value mlterminal_d_color(
 		default_attributes_initialized = true;
 		default_attributes = attributes;
 	}
-	if(Is_block(reset) && Int_val(Field(reset, 0))){
+	if(Is_block(reset) && Bool_val(Field(reset, 0))){
 		attributes = default_attributes;
 	}
 	if(Is_block(foreground)){
@@ -495,10 +495,10 @@ CAMLprim value mlterminal_d_color(
 		attributes &= ~0xf0;
 		attributes |= code_of_color(Field(background, 0)) << 4;
 	}
-	if(Is_block(reverse) && Int_val(Field(reverse, 0))){
+	if(Is_block(reverse) && Bool_val(Field(reverse, 0))){
 		attributes = ((attributes & 0x0f) << 4) | ((attributes & 0xf0) >> 4);
 	}
-	if(Is_block(concealed) && Int_val(Field(concealed, 0))){
+	if(Is_block(concealed) && Bool_val(Field(concealed, 0))){
 		attributes &= ~0x0f;
 		attributes |= (attributes & 0xf0) >> 4;
 	}
@@ -509,26 +509,26 @@ CAMLprim value mlterminal_d_color(
 	int i = 0;
 	buf[i++] = '\x1b';
 	buf[i++] = '[';
-	if(Is_block(reset) && Int_val(Field(reset, 0))){
+	if(Is_block(reset) && Bool_val(Field(reset, 0))){
 		buf[i++] = '0';
 	}
-	if(Is_block(bold) && Int_val(Field(bold, 0))){
+	if(Is_block(bold) && Bool_val(Field(bold, 0))){
 		if(i > 2) buf[i++] = ';';
 		buf[i++] = '1';
 	}
-	if(Is_block(underscore) && Int_val(Field(underscore, 0))){
+	if(Is_block(underscore) && Bool_val(Field(underscore, 0))){
 		if(i > 2) buf[i++] = ';';
 		buf[i++] = '4';
 	}
-	if(Is_block(blink) && Int_val(Field(blink, 0))){
+	if(Is_block(blink) && Bool_val(Field(blink, 0))){
 		if(i > 2) buf[i++] = ';';
 		buf[i++] = '5';
 	}
-	if(Is_block(reverse) && Int_val(Field(reverse, 0))){
+	if(Is_block(reverse) && Bool_val(Field(reverse, 0))){
 		if(i > 2) buf[i++] = ';';
 		buf[i++] = '7';
 	}
-	if(Is_block(concealed) && Int_val(Field(concealed, 0))){
+	if(Is_block(concealed) && Bool_val(Field(concealed, 0))){
 		if(i > 2) buf[i++] = ';';
 		buf[i++] = '8';
 	}
@@ -696,7 +696,7 @@ CAMLprim value mlterminal_d_show_cursor(value out, value visible)
 	HANDLE f = handle_of_descr(out);
 	CONSOLE_CURSOR_INFO info;
 	GetConsoleCursorInfo(f, &info);
-	info.bVisible = Int_val(visible);
+	info.bVisible = Bool_val(visible);
 	SetConsoleCursorInfo(f, &info);
 #else
 	/* refer https://developer.apple.com/library/mac/#documentation/OpenSource/
@@ -704,12 +704,37 @@ CAMLprim value mlterminal_d_show_cursor(value out, value visible)
 	         AdvancedTechniques.html%23//apple_ref/doc/uid/
 	         TP40004268-TP40003521-SW9 */
 	int f = handle_of_descr(out);
-	if(Int_val(visible)){
+	if(Bool_val(visible)){
 		/* write(f, "\x1b[>5l", 5); */
 		write(f, "\x1b[?25h", 6);
 	}else{
 		/* write(f, "\x1b[>5h", 5); */
 		write(f, "\x1b[?25l", 6);
+	}
+#endif
+	CAMLreturn(Val_unit);
+}
+
+CAMLprim value mlterminal_d_wrap(value out, value enabled)
+{
+	CAMLparam2(out, enabled);
+#ifdef __WINNT__
+	HANDLE f = handle_of_descr(out);
+	DWORD mode;
+	window_input_installed = true;
+	GetConsoleMode(f, &mode);
+	if(Bool_val(enabled)){
+		mode |= ENABLE_WRAP_AT_EOL_OUTPUT;
+	}else{
+		mode &= ~ENABLE_WRAP_AT_EOL_OUTPUT;
+	}
+	SetConsoleMode(f, mode);
+#else
+	int f = handle_of_descr(out);
+	if(Bool_val(enabled)){
+		write(f, "\x1b[7h", 4);
+	}else{
+		write(f, "\x1b[7l", 4);
 	}
 #endif
 	CAMLreturn(Val_unit);
@@ -823,21 +848,21 @@ CAMLprim value mlterminal_d_mode(
 	}
 	new_mode = old_mode;
 	if(Is_block(echo)){
-		if(Int_val(Field(echo, 0))){
+		if(Bool_val(Field(echo, 0))){
 			new_mode |= ENABLE_ECHO_INPUT;
 		}else{
 			new_mode &= ~ENABLE_ECHO_INPUT;
 		}
 	}
 	if(Is_block(canonical)){
-		if(Int_val(Field(canonical, 0))){
+		if(Bool_val(Field(canonical, 0))){
 			new_mode |= ENABLE_LINE_INPUT;
 		}else{
 			new_mode &= ~ENABLE_LINE_INPUT;
 		}
 	}
 	if(Is_block(ctrl_c)){
-		if(Int_val(Field(ctrl_c, 0))){
+		if(Bool_val(Field(ctrl_c, 0))){
 			new_mode |= ENABLE_PROCESSED_INPUT;
 		}else{
 			new_mode &= ~ENABLE_PROCESSED_INPUT;
@@ -853,14 +878,14 @@ CAMLprim value mlterminal_d_mode(
 	}
 	new_settings = old_settings;
 	if(Is_block(echo)){
-		if(Int_val(Field(echo, 0))){
+		if(Bool_val(Field(echo, 0))){
 			new_settings.c_lflag |= ECHO;
 		}else{
 			new_settings.c_lflag &= ~ECHO;
 		}
 	}
 	if(Is_block(canonical)){
-		if(Int_val(Field(canonical, 0))){
+		if(Bool_val(Field(canonical, 0))){
 			new_settings.c_lflag |= ICANON;
 		}else{
 			new_settings.c_lflag &= ~ICANON;
@@ -869,7 +894,7 @@ CAMLprim value mlterminal_d_mode(
 		}
 	}
 	if(Is_block(ctrl_c)){
-		if(Int_val(Field(ctrl_c, 0))){
+		if(Bool_val(Field(ctrl_c, 0))){
 			new_settings.c_lflag |= ISIG;
 		}else{
 			new_settings.c_lflag &= ~ISIG;

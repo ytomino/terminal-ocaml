@@ -127,6 +127,7 @@ module Descr: sig
 	val clear_line: file_descr -> unit -> unit;;
 	
 	val scroll: file_descr -> int -> unit;;
+	val wrap: file_descr -> bool -> unit;;
 	
 	val show_cursor: file_descr -> bool -> unit;;
 	
@@ -195,6 +196,9 @@ val scroll: out_channel -> int -> unit;;
 (** Scroll contents in view port. *)
 
 val show_cursor: out_channel -> bool -> unit;;
+(* [show_cursor oc flag] show or hide the cursor. *)
+val wrap: out_channel -> bool -> unit;;
+(* [wrap oc flag] enables or disables line wrapping. *)
 
 val screen:
 	out_channel ->

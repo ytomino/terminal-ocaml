@@ -39,6 +39,7 @@ Sys.catch_break true;;
 Terminal.screen stdout (fun stdout ->
 	Terminal.Descr.mode Unix.stdin ~echo:false ~canonical:false (fun () ->
 		Terminal.show_cursor stdout false;
+		Terminal.wrap stdout false;
 		try
 			let left, top, right, bottom = Terminal.view stdout in
 			let width = ref (right - left + 1) in
@@ -99,6 +100,7 @@ Terminal.screen stdout (fun stdout ->
 			done
 		with exn ->
 			Terminal.show_cursor stdout true;
+			Terminal.wrap stdout true;
 			if exn <> Exit then raise exn
 	)
 );;

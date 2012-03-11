@@ -255,6 +255,8 @@ module Descr = struct
 	
 	external show_cursor: file_descr -> bool -> unit =
 		"mlterminal_d_show_cursor";;
+	external wrap: file_descr -> bool -> unit =
+		"mlterminal_d_wrap";;
 	
 	external screen:
 		file_descr ->
@@ -376,6 +378,11 @@ let scroll out y = (
 let show_cursor out visible = (
 	flush out;
 	Descr.show_cursor (Unix.descr_of_out_channel out) visible
+);;
+
+let wrap out enabled = (
+	flush out;
+	Descr.wrap (Unix.descr_of_out_channel out) enabled
 );;
 
 let screen out ?size f = (
