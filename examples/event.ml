@@ -4,7 +4,8 @@ let (_: int * int * int * int) = Terminal.Descr.view Unix.stdout;;
 Sys.catch_break true;;
 (* install SIGINT handler *)
 
-Terminal.Descr.mode Unix.stdin ~echo:false ~canonical:false (fun () ->
+let mouse = true in
+Terminal.Descr.mode Unix.stdin ~echo:false ~canonical:false ~mouse (fun () ->
 	let write_string fd s =
 		let (_: int) = Unix.write fd s 0 (String.length s) in ()
 	in
@@ -22,7 +23,7 @@ Terminal.Descr.mode Unix.stdin ~echo:false ~canonical:false (fun () ->
 			let ev = Terminal.Descr.input_event Unix.stdin in
 			let seq = Terminal.escape_sequence_of_event ev in
 			let desc = ref "" in
-			if Terminal.is_key ev then (
+			if Terminal.is_key ev || Terminal.is_clicked ev then (
 				let ss = Terminal.shift_of_event ev in
 				if Terminal.mem Terminal.shift ss then (
 					desc := !desc ^ "shift+";
@@ -32,7 +33,9 @@ Terminal.Descr.mode Unix.stdin ~echo:false ~canonical:false (fun () ->
 				);
 				if Terminal.mem Terminal.alt ss then (
 					desc := !desc ^ "alt+";
-				);
+				)
+			);
+			if Terminal.is_key ev then (
 				begin match Terminal.key_of_event ev with
 				| `up ->
 					desc := !desc ^ "up";
@@ -89,6 +92,25 @@ Terminal.Descr.mode Unix.stdin ~echo:false ~canonical:false (fun () ->
 				| `unknown ->
 					desc := !desc ^ "unknown"
 				end
+			) else if Terminal.is_clicked ev then (
+				begin match Terminal.button_of_event ev with
+				| `button1 ->
+					desc := !desc ^ "button1"
+				| `button2 ->
+					desc := !desc ^ "button2"
+				| `button3 ->
+					desc := !desc ^ "button3"
+				| `wheelup ->
+					desc := !desc ^ "wheelup"
+				| `wheeldown ->
+					desc := !desc ^ "wheeldown"
+				| `released ->
+					desc := !desc ^ "released"
+				| `unknown ->
+					desc := !desc ^ "unknown"
+				end;
+				let x, y = Terminal.position_of_event ev in
+				desc := !desc ^ "(" ^ string_of_int x ^ "," ^ string_of_int y ^ ")"
 			) else if Terminal.is_resized ev then (
 				desc := "resized"
 			) else if Terminal.is_char ev then (

@@ -79,7 +79,9 @@ val is_key: event -> bool;;
 val key_of_event: event -> [key | `unknown];;
 (** Retrun a key of given event. *)
 val shift_of_event: event -> shift_state;;
-(** Retrun shift state of given event. *)
+(** Retrun shift state of given event.
+    [shift_of_event] works for key event and also mouse clicked event.
+    But a modifier+Click is normally unavailable because popup menu. *)
 
 type shift_key = private int;;
 
@@ -91,6 +93,21 @@ val alt: shift_key;;
 
 val mem: shift_key -> shift_state -> bool;;
 external add: shift_key -> shift_state -> shift_state = "%orint";;
+
+type button = [
+	| `button1
+	| `button2
+	| `button3
+	| `wheelup
+	| `wheeldown
+	| `released];;
+
+val is_clicked: event -> bool;;
+(** Check whether given event means the mouse is clicked. *)
+val button_of_event: event -> [button | `unknown];;
+(** Return a button of given event. *)
+val position_of_event: event -> int * int;;
+(** Retrun mouse position of given event. *)
 
 module Descr: sig
 	open Unix;;
@@ -144,7 +161,8 @@ module Descr: sig
 		file_descr ->
 		?echo:bool ->
 		?canonical:bool ->
-		?ctrl_c:bool ->
+		?control_c:bool ->
+		?mouse:bool ->
 		(unit -> 'a) ->
 		'a;;
 	
@@ -218,15 +236,17 @@ val mode:
 	in_channel ->
 	?echo:bool ->
 	?canonical:bool ->
-	?ctrl_c:bool ->
+	?control_c:bool ->
+	?mouse:bool ->
 	(unit -> 'a) ->
 	'a;;
-(** [mode ic ~echo ~canonical ~ctrl_c f] saves, changes and restores
+(** [mode ic ~echo ~canonical ~control_c f] saves, changes and restores
     mode of given input channel.
     If [echo] is false, disable echoing.
     If [canonical] is false, disable line editing.
-    If [ctrl_c] is false, ignore Ctrl+C.
-    Use [Sys.catch_break] to handle Ctrl+C as exception. *)
+    If [control_c] is false, ignore Ctrl+C.
+    (Use [Sys.catch_break] to handle Ctrl+C as exception.)
+    If [mouse] is true, get mouse events. *)
 
 val input_line_utf8: in_channel -> string;;
 (** Read from the given input channel until a newline.

@@ -1,3 +1,15 @@
+(* reference:
+     xterm
+       http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
+     Terminal.app
+       https://developer.apple.com/library/mac/#documentation/OpenSource/
+         Conceptual/ShellScripting/AdvancedTechniques/
+         AdvancedTechniques.html%23//apple_ref/doc/uid/
+         TP40004268-TP40003521-SW9
+     Win32 API
+       http://msdn.microsoft.com/en-us/library/windows/desktop/
+         ms682087(v=vs.85).aspx *)
+
 type color = {
 	red: int;
 	green: int;
@@ -189,8 +201,6 @@ let key_of_event = parse
 	)
 	`unknown;;
 
-let shift_of_event = parse (fun _ s _ -> s - 1) 0;;
-
 type shift_key = int;;
 
 let empty = 0;;
@@ -201,6 +211,52 @@ let alt = 8;;
 
 let mem sk ss = sk land ss <> 0;;
 external add: shift_key -> shift_state -> shift_state = "%orint";;
+
+let is_clicked ev = (
+	String.length ev = 6 && ev.[0] = '\x1b' && ev.[1] = '[' && ev.[2] = 'M'
+);;
+
+let position_of_event ev = (
+	assert (is_clicked ev);
+	let x = int_of_char ev.[4] - 0x21 in
+	let y = int_of_char ev.[5] - 0x21 in
+	x, y
+);;
+
+type button = [
+	| `button1
+	| `button2
+	| `button3
+	| `wheelup
+	| `wheeldown
+	| `released];;
+
+let button_of_event ev = (
+	assert (is_clicked ev);
+	let m = int_of_char ev.[3] in
+	begin match m land 0b01000011 with
+	| 0b00000000 -> `button1
+	| 0b00000001 -> `button2
+	| 0b00000010 -> `button3
+	| 0b00000011 -> `released
+	| 0b01000000 -> `wheelup
+	| 0b01000001 -> `wheeldown
+	| _ -> `unknown
+	end
+);;
+
+let shift_of_event ev = (
+	if is_clicked ev then (
+		let m = int_of_char ev.[3] in
+		let result = empty in
+		let result = if m land 4 <> 0 then add shift result else result in
+		let result = if m land 8 <> 0 then add alt result else result in
+		let result = if m land 16 <> 0 then add control result else result in
+		result
+	) else (
+		parse (fun _ s _ -> s - 1) 0 ev
+	)
+);;
 
 module Descr = struct
 	open Unix;;
@@ -274,10 +330,11 @@ module Descr = struct
 		file_descr ->
 		?echo:bool ->
 		?canonical:bool ->
-		?ctrl_c:bool ->
+		?control_c:bool ->
+		?mouse:bool ->
 		(unit -> 'a) ->
 		'a =
-		"mlterminal_d_mode";;
+		"mlterminal_d_mode_byte" "mlterminal_d_mode";;
 	
 	external input_line_utf8: file_descr -> string =
 		"mlterminal_d_input_line_utf8";;
@@ -407,8 +464,14 @@ let output_string_utf8 out s = (
 	output_utf8 out s 0 (String.length s)
 );;
 
-let mode ic ?echo ?canonical ?ctrl_c f = (
-	Descr.mode (Unix.descr_of_in_channel ic) ?echo ?canonical ?ctrl_c f
+let mode ic ?echo ?canonical ?control_c ?mouse f = (
+	Descr.mode
+		(Unix.descr_of_in_channel ic)
+		?echo
+		?canonical
+		?control_c
+		?mouse
+		f
 );;
 
 let input_line_utf8 = compose Descr.input_line_utf8 Unix.descr_of_in_channel;;

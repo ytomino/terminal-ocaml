@@ -201,6 +201,17 @@ static bool is_empty(int fd)
 	return result;
 }
 
+static void set_mouse_mode(int fd, bool flag)
+{
+	if(flag){
+		write(fd, "\x1b[?1000h", 8);
+	}else{
+		write(fd, "\x1b[?1000l", 8);
+	}
+}
+
+static bool current_mouse_mode = false;
+
 #endif
 
 CAMLprim value mlterminal_set_title(value title)
@@ -699,14 +710,10 @@ CAMLprim value mlterminal_d_show_cursor(value out, value visible)
 	info.bVisible = Bool_val(visible);
 	SetConsoleCursorInfo(f, &info);
 #else
-	/* refer https://developer.apple.com/library/mac/#documentation/OpenSource/
-	         Conceptual/ShellScripting/AdvancedTechniques/
-	         AdvancedTechniques.html%23//apple_ref/doc/uid/
-	         TP40004268-TP40003521-SW9 */
 	int f = handle_of_descr(out);
 	if(Bool_val(visible)){
 		/* write(f, "\x1b[>5l", 5); */
-		write(f, "\x1b[?25h", 6);
+		write(f, "\x1b[?25h", 6); /* for Terminal.app, xterm can accept this */
 	}else{
 		/* write(f, "\x1b[>5h", 5); */
 		write(f, "\x1b[?25l", 6);
@@ -836,9 +843,11 @@ CAMLprim value mlterminal_d_mode(
 	value echo,
 	value canonical,
 	value ctrl_c,
+	value mouse,
 	value closure)
 {
-	CAMLparam5(in, echo, canonical, ctrl_c, closure);
+	CAMLparam5(in, echo, canonical, ctrl_c, mouse);
+	CAMLxparam1(closure);
 	CAMLlocal1(result);
 #ifdef __WINNT__
 	HANDLE f = handle_of_descr(in);
@@ -868,10 +877,18 @@ CAMLprim value mlterminal_d_mode(
 			new_mode &= ~ENABLE_PROCESSED_INPUT;
 		}
 	}
+	if(Is_block(mouse)){
+		if(Bool_val(Field(mouse, 0))){
+			new_mode |= ENABLE_MOUSE_INPUT;
+		}else{
+			new_mode &= ~ENABLE_MOUSE_INPUT;
+		}
+	}
 	SetConsoleMode(f, new_mode);
 	result = caml_callback_exn(closure, Val_unit);
 	SetConsoleMode(f, old_mode);
 #else
+	bool pred_mouse_mode = current_mouse_mode;
 	struct termios old_settings, new_settings;
 	if(tcgetattr(2, &old_settings) < 0){
 		failwith("mlterminal_d_mode(tcgetattr)");
@@ -901,13 +918,37 @@ CAMLprim value mlterminal_d_mode(
 		}
 	}
 	tcsetattr(2, TCSAFLUSH, &new_settings);
+	if(Is_block(mouse)){
+		if(!isatty(0)){
+			failwith("mlterminal_d_mode(stdout is not associated to terminal)");
+		}
+		current_mouse_mode = Bool_val(Field(mouse, 0));
+		set_mouse_mode(0, current_mouse_mode);
+	}
 	result = caml_callback_exn(closure, Val_unit);
+	if(current_mouse_mode != pred_mouse_mode){
+		set_mouse_mode(0, pred_mouse_mode);
+		current_mouse_mode = pred_mouse_mode;
+	}
 	tcsetattr(2, TCSANOW, &old_settings);
 #endif
 	if(Is_exception_result(result)){
 		caml_raise(Extract_exception(result));
 	}
 	CAMLreturn(result);
+}
+
+CAMLprim value mlterminal_d_mode_byte(
+	value *argv,
+	__attribute__((unused)) int n)
+{
+	return mlterminal_d_mode(
+		argv[0],
+		argv[1],
+		argv[2],
+		argv[3],
+		argv[4],
+		argv[5]);
 }
 
 CAMLprim value mlterminal_d_input_line_utf8(
@@ -1062,6 +1103,7 @@ CAMLprim value mlterminal_d_is_empty(value in)
 					goto done;
 				}
 				break; /* will skip */
+			case MOUSE_EVENT:
 			case WINDOW_BUFFER_SIZE_EVENT:
 				result = Val_bool(false);
 				goto done;
@@ -1099,6 +1141,7 @@ CAMLprim value mlterminal_d_input_event(value in)
 			caml_raise_end_of_file(); /* ??? */
 		}else{
 			PKEY_EVENT_RECORD k;
+			PMOUSE_EVENT_RECORD m;
 			switch(input_record.EventType){
 			case KEY_EVENT:
 				k = &input_record.Event.KeyEvent;
@@ -1222,6 +1265,45 @@ CAMLprim value mlterminal_d_input_event(value in)
 					goto done;
 				}
 				break;
+			case MOUSE_EVENT:
+				m = &input_record.Event.MouseEvent;
+				unsigned char s = 0x43; /* unknown */
+				if(m->dwEventFlags == 0 || m->dwEventFlags == DOUBLE_CLICK){
+					if(m->dwButtonState == 0){
+						s = 0x03; /* released */
+					}else if(m->dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED){
+						s = 0x00;
+					}else if(m->dwButtonState & RIGHTMOST_BUTTON_PRESSED){
+						s = 0x01;
+					}else if(m->dwButtonState & FROM_LEFT_2ND_BUTTON_PRESSED){
+						s = 0x02;
+					}
+				}else if(m->dwEventFlags == MOUSE_WHEELED){
+					if(m->dwButtonState & (1 << 31)){
+						s = 0x40; /* up */
+					}else{
+						s = 0x41; /* down */
+					}
+				}
+				if(m->dwControlKeyState & SHIFT_PRESSED){
+					s |= 0x04;
+				}
+				if(m->dwControlKeyState
+					& (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED))
+				{
+					s |= 0x10;
+				}
+				if(m->dwControlKeyState & (LEFT_ALT_PRESSED | RIGHT_ALT_PRESSED)){
+					s |= 0x08;
+				}
+				buf[0] = '\x1b';
+				buf[1] = '[';
+				buf[2] = 'M';
+				buf[3] = s;
+				buf[4] = m->dwMousePosition.X + 0x21;
+				buf[5] = m->dwMousePosition.Y + 0x22;
+				buf[6] = '\0';
+				break;
 			case WINDOW_BUFFER_SIZE_EVENT:
 				/* "\x1b[Sz" is fictitious escape sequence */
 				result = caml_copy_string("\x1b[Sz");
@@ -1239,7 +1321,10 @@ done:
 	}else{
 		char buf[64];
 		int i = 0;
-		enum {s_exit, s_init, s_escape, s_escape_param} state = s_init;
+		enum {
+			s_exit, s_init, s_escape, s_escape_param, s_escape_param_N,
+			s_escape_mouse_1, s_escape_mouse_2, s_escape_mouse_3
+		} state = s_init;
 		do{
 			bool break_on_sigwinch = i == 0 && sigwinch_installed;
 			caml_enter_blocking_section();
@@ -1280,6 +1365,12 @@ done:
 					}
 					break;
 				case s_escape_param:
+					if(c == 'M'){
+						state = s_escape_mouse_1;
+						break;
+					}
+					state = s_escape_param_N; /* fall through */
+				case s_escape_param_N:
 					switch(c){
 					case '0': case '1': case '2': case '3': case '4':
 					case '5': case '6': case '7': case '8': case '9':
@@ -1291,6 +1382,11 @@ done:
 						state = s_exit;
 					}
 					break;
+				case s_escape_mouse_1:
+				case s_escape_mouse_2:
+					++ state;
+					break;
+				case s_escape_mouse_3:
 				default:
 					state = s_exit;
 				}
