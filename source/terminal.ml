@@ -268,13 +268,14 @@ module Descr = struct
 	let output_string_utf8 f s =
 		output_utf8 f s 0 (String.length s);;
 	
-	external set_input_mode:
+	external mode:
 		file_descr ->
 		?echo:bool ->
 		?canonical:bool ->
-		unit ->
-		unit =
-		"mlterminal_d_set_input_mode";;
+		?ctrl_c:bool ->
+		(unit -> 'a) ->
+		'a =
+		"mlterminal_d_mode";;
 	
 	external input_line_utf8: file_descr -> string =
 		"mlterminal_d_input_line_utf8";;
@@ -399,6 +400,8 @@ let output_string_utf8 out s = (
 	output_utf8 out s 0 (String.length s)
 );;
 
-let set_input_mode = compose Descr.set_input_mode Unix.descr_of_in_channel;;
+let mode ic ?echo ?canonical ?ctrl_c f = (
+	Descr.mode (Unix.descr_of_in_channel ic) ?echo ?canonical ?ctrl_c f
+);;
 
 let input_line_utf8 = compose Descr.input_line_utf8 Unix.descr_of_in_channel;;

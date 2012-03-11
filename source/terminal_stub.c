@@ -806,54 +806,83 @@ CAMLprim value mlterminal_d_output_utf8(
 	CAMLreturn(Val_unit);
 }
 
-CAMLprim value mlterminal_d_set_input_mode(
+CAMLprim value mlterminal_d_mode(
 	value in,
 	value echo,
 	value canonical,
-	value unit)
+	value ctrl_c,
+	value closure)
 {
-	CAMLparam4(in, echo, canonical, unit);
+	CAMLparam5(in, echo, canonical, ctrl_c, closure);
+	CAMLlocal1(result);
 #ifdef __WINNT__
 	HANDLE f = handle_of_descr(in);
-	DWORD mode;
-	GetConsoleMode(f, &mode);
+	DWORD old_mode, new_mode;
+	if(!GetConsoleMode(f, &old_mode)){
+		failwith("mlterminal_d_mode(GetConsoleMode)");
+	}
+	new_mode = old_mode;
 	if(Is_block(echo)){
 		if(Int_val(Field(echo, 0))){
-			mode |= ENABLE_ECHO_INPUT;
+			new_mode |= ENABLE_ECHO_INPUT;
 		}else{
-			mode &= ~ENABLE_ECHO_INPUT;
+			new_mode &= ~ENABLE_ECHO_INPUT;
 		}
 	}
 	if(Is_block(canonical)){
 		if(Int_val(Field(canonical, 0))){
-			mode |= ENABLE_LINE_INPUT;
+			new_mode |= ENABLE_LINE_INPUT;
 		}else{
-			mode &= ~ENABLE_LINE_INPUT;
+			new_mode &= ~ENABLE_LINE_INPUT;
 		}
 	}
-	SetConsoleMode(f, mode);
+	if(Is_block(ctrl_c)){
+		if(Int_val(Field(ctrl_c, 0))){
+			new_mode |= ENABLE_PROCESSED_INPUT;
+		}else{
+			new_mode &= ~ENABLE_PROCESSED_INPUT;
+		}
+	}
+	SetConsoleMode(f, new_mode);
+	result = caml_callback_exn(closure, Val_unit);
+	SetConsoleMode(f, old_mode);
 #else
-	struct termios settings;
-	tcgetattr(2, &settings);
+	struct termios old_settings, new_settings;
+	if(tcgetattr(2, &old_settings) < 0){
+		failwith("mlterminal_d_mode(tcgetattr)");
+	}
+	new_settings = old_settings;
 	if(Is_block(echo)){
 		if(Int_val(Field(echo, 0))){
-			settings.c_lflag |= ECHO;
+			new_settings.c_lflag |= ECHO;
 		}else{
-			settings.c_lflag &= ~ECHO;
+			new_settings.c_lflag &= ~ECHO;
 		}
 	}
 	if(Is_block(canonical)){
 		if(Int_val(Field(canonical, 0))){
-			settings.c_lflag |= ICANON;
+			new_settings.c_lflag |= ICANON;
 		}else{
-			settings.c_lflag &= ~ICANON;
-			/* settings.c_cc[VMIN] = 1; */
-			/* settings.c_cc[VTIME] = 0; */
+			new_settings.c_lflag &= ~ICANON;
+			/* new_settings.c_cc[VMIN] = 1; */
+			/* new_settings.c_cc[VTIME] = 0; */
 		}
 	}
-	tcsetattr(2, TCSANOW, &settings);
+	if(Is_block(ctrl_c)){
+		if(Int_val(Field(ctrl_c, 0))){
+			new_settings.c_lflag |= ISIG;
+		}else{
+			new_settings.c_lflag &= ~ISIG;
+		}
+	}
+	tcsetattr(2, TCSAFLUSH, &new_settings);
+	result = caml_callback_exn(closure, Val_unit);
+	tcsetattr(2, TCSANOW, &old_settings);
 #endif
-	CAMLreturn(Val_unit);
+	if(Is_exception_result(result)){
+		caml_raise(Extract_exception(result));
+	}
+	CAMLreturn(result);
 }
 
 CAMLprim value mlterminal_d_input_line_utf8(

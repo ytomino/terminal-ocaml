@@ -139,12 +139,13 @@ module Descr: sig
 	val output_utf8: file_descr -> string -> int -> int -> unit;;
 	val output_string_utf8: file_descr -> string -> unit;;
 	
-	val set_input_mode:
+	val mode:
 		file_descr ->
 		?echo:bool ->
 		?canonical:bool ->
-		unit ->
-		unit;;
+		?ctrl_c:bool ->
+		(unit -> 'a) ->
+		'a;;
 	
 	val input_line_utf8: file_descr -> string;;
 	
@@ -209,12 +210,19 @@ val output_string_utf8: out_channel -> string -> unit;;
 (** Write a UTF-8 encoded string to the given output channel.
     On POSIX, It's same as [Pervasives.output_string]. *)
 
-val set_input_mode:
+val mode:
 	in_channel ->
 	?echo:bool ->
 	?canonical:bool ->
-	unit ->
-	unit;;
+	?ctrl_c:bool ->
+	(unit -> 'a) ->
+	'a;;
+(** [mode ic ~echo ~canonical ~ctrl_c f] saves, changes and restores
+    mode of given input channel.
+    If [echo] is false, disable echoing.
+    If [canonical] is false, disable line editing.
+    If [ctrl_c] is false, ignore Ctrl+C.
+    Use [Sys.catch_break] to handle Ctrl+C as exception. *)
 
 val input_line_utf8: in_channel -> string;;
 (** Read from the given input channel until a newline.
