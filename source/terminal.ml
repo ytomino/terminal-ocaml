@@ -321,6 +321,15 @@ module Descr = struct
 		'a =
 		"mlterminal_d_screen";;
 	
+	let output fd s pos len = (
+		let w = Unix.write fd s pos len in
+		if w < len then failwith("Terminal.Descr.output")
+	);;
+	
+	let output_string fd s = (
+		output fd s 0 (String.length s)
+	);;
+	
 	external output_utf8: file_descr -> string -> int -> int -> unit =
 		"mlterminal_d_output_utf8";;
 	let output_string_utf8 f s =
@@ -335,6 +344,8 @@ module Descr = struct
 		(unit -> 'a) ->
 		'a =
 		"mlterminal_d_mode_byte" "mlterminal_d_mode";;
+	
+	let input = Unix.read;;
 	
 	external input_line_utf8: file_descr -> string =
 		"mlterminal_d_input_line_utf8";;
@@ -476,3 +487,6 @@ let mode ic ?echo ?canonical ?control_c ?mouse f = (
 );;
 
 let input_line_utf8 = compose Descr.input_line_utf8 Unix.descr_of_in_channel;;
+
+external sleep: float -> unit =
+	"mlterminal_sleep";;

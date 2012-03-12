@@ -173,6 +173,11 @@ module Descr: sig
 		(file_descr -> 'a) ->
 		'a;;
 	
+	val output: file_descr -> string -> int -> int -> unit;;
+	(** Same as [Unix.write], but return type is unit. *)
+	val output_string: file_descr -> string -> unit;;
+	(** Same as [output fd s 0 (String.length s)]. *)
+	
 	val output_utf8: file_descr -> string -> int -> int -> unit;;
 	val output_string_utf8: file_descr -> string -> unit;;
 	
@@ -184,6 +189,9 @@ module Descr: sig
 		?mouse:bool ->
 		(unit -> 'a) ->
 		'a;;
+	
+	val input: file_descr -> string -> int -> int -> int;;
+	(** Same as [Unix.read]. *)
 	
 	val input_line_utf8: file_descr -> string;;
 	
@@ -296,3 +304,8 @@ val input_line_utf8: in_channel -> string;;
 (** Read from the given input channel until a newline.
     And return a UTF-8 encoded string.
     On POSIX, It's same as [Pervasives.input_line]. *)
+
+(** {6 Miscellany} *)
+
+val sleep: float -> unit;;
+(** [float] version of [Unix.sleep]. *)

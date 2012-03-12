@@ -129,9 +129,11 @@ static value vk_f12[SS_MAX];
 #else
 
 #include <errno.h>
+#include <math.h>
 #include <stdio.h>
 #include <signal.h>
 #include <termios.h>
+#include <time.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
@@ -1403,4 +1405,25 @@ resized:
 done:
 #endif
 	CAMLreturn(result);
+}
+
+CAMLprim value mlterminal_sleep(value seconds)
+{
+	CAMLparam1(seconds);
+	double s = Double_val(seconds);
+	caml_enter_blocking_section();
+#ifdef __WINNT__
+	Sleep((DWORD(s * 1.0e3))); /* milliseconds */
+#else
+	double int_s = trunc(s);
+	struct timespec rqt, rmt;
+	rqt.tv_sec = (time_t)int_s;
+	rqt.tv_nsec = (s - int_s) * 1.0e9; /* nanoseconds */
+	for(;;){
+		if(nanosleep(&rqt, &rmt) == 0) break;
+		rqt = rmt;
+	}
+#endif
+	caml_leave_blocking_section();
+	CAMLreturn(Val_unit);
 }
