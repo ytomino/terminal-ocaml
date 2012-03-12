@@ -17,7 +17,7 @@
 static HANDLE handle_of_descr(value x)
 {
 	if(Descr_kind_val(x) != KIND_HANDLE){
-		failwith("the channel is not a file handle");
+		failwith("mlterminal(the channel is not a file handle)");
 	}
 	return Handle_val(x);
 }
@@ -84,6 +84,26 @@ static void clear_rect(HANDLE f, SMALL_RECT *rect)
 	memset(buf, 0, sizeof_buf);
 	WriteConsoleOutput(f, buf, buf_size, (COORD){.X = 0, .Y = 0}, rect);
 	free(buf);
+}
+
+static void set_cursor_visible(HANDLE f, bool flag)
+{
+	CONSOLE_CURSOR_INFO info;
+	GetConsoleCursorInfo(f, &info);
+	info.bVisible = flag;
+	SetConsoleCursorInfo(f, &info);
+}
+
+static void set_wrap(HANDLE f, bool flag)
+{
+	DWORD mode;
+	GetConsoleMode(f, &mode);
+	if(flag){
+		mode |= ENABLE_WRAP_AT_EOL_OUTPUT;
+	}else{
+		mode &= ~ENABLE_WRAP_AT_EOL_OUTPUT;
+	}
+	SetConsoleMode(f, mode);
 }
 
 static value key(value *var, int k, unsigned s, char c)
@@ -172,6 +192,13 @@ static void set_restart_on_sigwinch(bool restart)
 	sigaction(SIGWINCH, &sa, NULL);
 }
 
+void set_size(int fd, struct ttysize const *win)
+{
+	if(ioctl(fd, TIOCSSIZE, win) < 0){
+		failwith("mlterminal(ioctl, failed to set size)");
+	}
+}
+
 static int code_of_color(value x)
 {
 	int result = 0;
@@ -186,6 +213,32 @@ static bool mem_intensity(value x)
 	return Int_val(Field(x, 3));
 }
 
+static bool current_cursor_visible = true;
+
+static void set_cursor_visible(int fd, bool flag)
+{
+	if(flag){
+		/* write(f, "\x1b[>5l", 5); */
+		write(fd, "\x1b[?25h", 6); /* for Terminal.app, xterm can accept this */
+	}else{
+		/* write(f, "\x1b[>5h", 5); */
+		write(fd, "\x1b[?25l", 6);
+	}
+	current_cursor_visible = flag;
+}
+
+static bool current_wrap = true;
+
+static void set_wrap(int fd, bool flag)
+{
+	if(flag){
+		write(fd, "\x1b[7h", 4);
+	}else{
+		write(fd, "\x1b[7l", 4);
+	}
+	current_wrap = flag;
+}
+
 static bool is_empty(int fd)
 {
 	bool result;
@@ -196,12 +249,14 @@ static bool is_empty(int fd)
 	FD_ZERO(&fds_w);
 	FD_ZERO(&fds_e);
 	if(select(fd + 1, &fds_r, &fds_w, &fds_e, &zero_time) < 0){
-		failwith("mlterminal(failed to select)");
+		failwith("mlterminal(select, failed to check for reading)");
 	}else{
 		result = !FD_ISSET(fd, &fds_r);
 	}
 	return result;
 }
+
+static bool current_mouse_mode = false;
 
 static void set_mouse_mode(int fd, bool flag)
 {
@@ -210,9 +265,8 @@ static void set_mouse_mode(int fd, bool flag)
 	}else{
 		write(fd, "\x1b[?1000l", 8);
 	}
+	current_mouse_mode = flag;
 }
-
-static bool current_mouse_mode = false;
 
 #endif
 
@@ -307,9 +361,7 @@ CAMLprim value mlterminal_d_set_size(value out, value w, value h)
 	struct ttysize win;
 	win.ts_cols = Int_val(w);
 	win.ts_lines = Int_val(h);
-	if(ioctl(f, TIOCSSIZE, &win) < 0){
-		failwith("mlterminal_d_set_size");
-	}
+	set_size(f, &win);
 #endif
 	CAMLreturn(Val_unit);
 }
@@ -707,19 +759,10 @@ CAMLprim value mlterminal_d_show_cursor(value out, value visible)
 	CAMLparam2(out, visible);
 #ifdef __WINNT__
 	HANDLE f = handle_of_descr(out);
-	CONSOLE_CURSOR_INFO info;
-	GetConsoleCursorInfo(f, &info);
-	info.bVisible = Bool_val(visible);
-	SetConsoleCursorInfo(f, &info);
+	set_cursor_visible(f, Bool_val(visible));
 #else
 	int f = handle_of_descr(out);
-	if(Bool_val(visible)){
-		/* write(f, "\x1b[>5l", 5); */
-		write(f, "\x1b[?25h", 6); /* for Terminal.app, xterm can accept this */
-	}else{
-		/* write(f, "\x1b[>5h", 5); */
-		write(f, "\x1b[?25l", 6);
-	}
+	set_cursor_visible(f, Bool_val(visible));
 #endif
 	CAMLreturn(Val_unit);
 }
@@ -729,29 +772,22 @@ CAMLprim value mlterminal_d_wrap(value out, value enabled)
 	CAMLparam2(out, enabled);
 #ifdef __WINNT__
 	HANDLE f = handle_of_descr(out);
-	DWORD mode;
-	window_input_installed = true;
-	GetConsoleMode(f, &mode);
-	if(Bool_val(enabled)){
-		mode |= ENABLE_WRAP_AT_EOL_OUTPUT;
-	}else{
-		mode &= ~ENABLE_WRAP_AT_EOL_OUTPUT;
-	}
-	SetConsoleMode(f, mode);
+	set_wrap(f, Bool_val(enabled));
 #else
 	int f = handle_of_descr(out);
-	if(Bool_val(enabled)){
-		write(f, "\x1b[7h", 4);
-	}else{
-		write(f, "\x1b[7l", 4);
-	}
+	set_wrap(f, Bool_val(enabled));
 #endif
 	CAMLreturn(Val_unit);
 }
 
-CAMLprim value mlterminal_d_screen(value out, value size, value closure)
+CAMLprim value mlterminal_d_screen(
+	value out,
+	value size,
+	value cursor,
+	value wrap,
+	value closure)
 {
-	CAMLparam2(out, closure);
+	CAMLparam5(out, size, cursor, wrap, closure);
 	CAMLlocal2(result, new_out);
 #ifdef __WINNT__
 	HANDLE f = handle_of_descr(out);
@@ -768,6 +804,12 @@ CAMLprim value mlterminal_d_screen(value out, value size, value closure)
 		int new_h = Int_val(Field(s, 1));
 		set_size(new_f, new_w, new_h, f);
 	}
+	if(Is_block(cursor)){
+		set_cursor_visible(new_f, Bool_val(Field(cursor, 0)));
+	}
+	if(Is_block(wrap)){
+		set_wrap(new_f, Bool_val(Field(wrap, 0)));
+	}
 	SetConsoleActiveScreenBuffer(new_f);
 	new_out = win_alloc_handle(new_f);
 	result = caml_callback_exn(closure, new_out);
@@ -775,6 +817,8 @@ CAMLprim value mlterminal_d_screen(value out, value size, value closure)
 	CloseHandle(new_f);
 #else
 	int f = handle_of_descr(out);
+	bool pred_cursor_visible = current_cursor_visible;
+	bool pred_wrap = current_wrap;
 	write(f, "\x1b""7\x1b[?47h", 8); /* enter_ca_mode */
 	struct ttysize old_win;
 	if(Is_block(size)){
@@ -786,16 +830,24 @@ CAMLprim value mlterminal_d_screen(value out, value size, value closure)
 		}
 		win.ts_cols = Int_val(Field(s, 0));
 		win.ts_lines = Int_val(Field(s, 1));
-		if(ioctl(f, TIOCSSIZE, &win) < 0){
-			failwith("mlterminal_d_screen(failed to set size)");
-		}
+		set_size(f, &win);
+	}
+	if(Is_block(cursor)){
+		set_cursor_visible(f, Bool_val(Field(cursor, 0)));
+	}
+	if(Is_block(wrap)){
+		set_wrap(f, Bool_val(Field(wrap, 0)));
 	}
 	new_out = out;
 	result = caml_callback_exn(closure, new_out);
+	if(current_wrap != pred_wrap){
+		set_wrap(f, pred_wrap);
+	}
+	if(current_cursor_visible != pred_cursor_visible){
+		set_cursor_visible(f, pred_cursor_visible);
+	}
 	if(Is_block(size)){
-		if(ioctl(f, TIOCSSIZE, &old_win) < 0){
-			failwith("mlterminal_d_screen(failed to restore size)");
-		}
+		set_size(f, &old_win);
 	}
 	write(f, "\x1b""[2J\x1b[?47l\x1b""8", 12); /* exit_ca_mode */
 #endif
@@ -924,13 +976,11 @@ CAMLprim value mlterminal_d_mode(
 		if(!isatty(0)){
 			failwith("mlterminal_d_mode(stdout is not associated to terminal)");
 		}
-		current_mouse_mode = Bool_val(Field(mouse, 0));
-		set_mouse_mode(0, current_mouse_mode);
+		set_mouse_mode(0, Bool_val(Field(mouse, 0)));
 	}
 	result = caml_callback_exn(closure, Val_unit);
 	if(current_mouse_mode != pred_mouse_mode){
 		set_mouse_mode(0, pred_mouse_mode);
-		current_mouse_mode = pred_mouse_mode;
 	}
 	tcsetattr(2, TCSANOW, &old_settings);
 #endif
@@ -1413,7 +1463,7 @@ CAMLprim value mlterminal_sleep(value seconds)
 	double s = Double_val(seconds);
 	caml_enter_blocking_section();
 #ifdef __WINNT__
-	Sleep((DWORD(s * 1.0e3))); /* milliseconds */
+	Sleep((DWORD)(s * 1.0e3)); /* milliseconds */
 #else
 	double int_s = trunc(s);
 	struct timespec rqt, rmt;

@@ -317,6 +317,8 @@ module Descr = struct
 	external screen:
 		file_descr ->
 		?size:(int * int) ->
+		?cursor:bool ->
+		?wrap:bool ->
 		(file_descr -> 'a) ->
 		'a =
 		"mlterminal_d_screen";;
@@ -454,11 +456,13 @@ let wrap out enabled = (
 	Descr.wrap (Unix.descr_of_out_channel out) enabled
 );;
 
-let screen out ?size f = (
+let screen out ?size ?cursor ?wrap f = (
 	flush out;
 	Descr.screen
 		(Unix.descr_of_out_channel out)
 		?size
+		?cursor
+		?wrap
 		(fun new_fd ->
 			let new_out = Unix.out_channel_of_descr new_fd in
 			set_binary_mode_out new_out false;

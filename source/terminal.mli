@@ -163,13 +163,15 @@ module Descr: sig
 	val clear_line: file_descr -> unit -> unit;;
 	
 	val scroll: file_descr -> int -> unit;;
-	val wrap: file_descr -> bool -> unit;;
 	
 	val show_cursor: file_descr -> bool -> unit;;
+	val wrap: file_descr -> bool -> unit;;
 	
 	val screen:
 		file_descr ->
 		?size:(int * int) ->
+		?cursor:bool ->
+		?wrap:bool ->
 		(file_descr -> 'a) ->
 		'a;;
 	
@@ -270,10 +272,15 @@ val wrap: out_channel -> bool -> unit;;
 val screen:
 	out_channel ->
 	?size:(int * int) ->
+	?cursor:bool ->
+	?wrap:bool ->
 	(out_channel -> 'a) ->
 	'a;;
-(** [screen oc ~size f] saves current screen buffer,
-    uses new screen buffer and restore old it. *)
+(** [screen oc ~size ~cursor ~wrap f] saves current screen buffer,
+    uses new screen buffer and restore old it.
+    If [~size] is given, same as [set_size oc size].
+    If [~cursor] is given, same as [show_cursor oc cursor].
+    If [~wrap:w] is given, same as [wrap oc w]. *)
 
 val output_utf8: out_channel -> string -> int -> int -> unit;;
 (** Write a part of a UTF-8 encoded string to the given output channel.
@@ -292,13 +299,13 @@ val mode:
 	?mouse:bool ->
 	(unit -> 'a) ->
 	'a;;
-(** [mode ic ~echo ~canonical ~control_c f] saves, changes and restores
+(** [mode ic ~echo ~canonical ~control_c ~mouse f] saves, changes and restores
     mode of given input channel.
-    If [echo] is false, disable echoing.
-    If [canonical] is false, disable line editing.
-    If [control_c] is false, ignore Ctrl+C.
+    If [~echo] is false, disable echoing.
+    If [~canonical] is false, disable line editing.
+    If [~control_c] is false, ignore Ctrl+C.
     (Use [Sys.catch_break] to handle Ctrl+C as exception.)
-    If [mouse] is true, get mouse events. *)
+    If [~mouse] is true, get mouse events. *)
 
 val input_line_utf8: in_channel -> string;;
 (** Read from the given input channel until a newline.
