@@ -216,8 +216,8 @@ end;;
 
 (** {6 Operations for output channel} *)
 
-val is_terminal: out_channel -> bool;;
-(** [is_terminal oc] returns true if given output channel is associated
+val is_terminal_out: out_channel -> bool;;
+(** [is_terminal_out oc] returns true if given output channel is associated
     to terminal. *)
 
 val size: out_channel -> int * int;;
@@ -294,6 +294,10 @@ val output_string_utf8: out_channel -> string -> unit;;
     On POSIX, It's same as [Pervasives.output_string]. *)
 
 (** {6 Operations for input channel} *)
+
+val is_terminal_in: in_channel -> bool;;
+(** [is_terminal_in ic] returns true if given input channel is associated
+    to terminal. *)
 
 val mode:
 	in_channel ->

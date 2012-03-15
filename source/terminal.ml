@@ -365,7 +365,7 @@ end;;
 
 let compose f g = fun x -> f (g x);;
 
-let is_terminal = compose Descr.is_terminal Unix.descr_of_out_channel;;
+let is_terminal_out = compose Descr.is_terminal Unix.descr_of_out_channel;;
 
 let size = compose Descr.size Unix.descr_of_out_channel;;
 let set_size = compose Descr.set_size Unix.descr_of_out_channel;;
@@ -482,6 +482,8 @@ let output_utf8 out s pos len = (
 let output_string_utf8 out s = (
 	output_utf8 out s 0 (String.length s)
 );;
+
+let is_terminal_in = compose Descr.is_terminal Unix.descr_of_in_channel;;
 
 let mode ic ?echo ?canonical ?control_c ?mouse f = (
 	Descr.mode
