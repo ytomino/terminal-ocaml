@@ -4,10 +4,10 @@
 
 val set_title: string -> unit;;
 (** Set title to given local encoded string.
-    On POSIX, it's no effect. *)
+    In POSIX, it's no effect. *)
 val set_title_utf8: string -> unit;;
 (** Set title to given UTF-8 encoded string.
-    On POSIX, it's no effect. *)
+    In POSIX, it's no effect. *)
 
 (** {6 Color type and values} *)
 
@@ -55,7 +55,7 @@ val string_of_event: event -> string;;
 
 val is_resized: event -> bool;;
 (** Check whether given event means terminal window has been resized.
-    It install sigwinch handler (on POSIX) or change console mode (on Windows)
+    It install sigwinch handler (in POSIX) or change console mode (in Windows)
     when calling [size], [set_size], [view] or [screen]. *)
 
 type key = [
@@ -184,7 +184,7 @@ module Descr: sig
 	val output_string_utf8: file_descr -> string -> unit;;
 	
 	val output_newline: file_descr -> unit -> unit;;
-	(** Write '\n' on POSIX, or write '\r\n' on Windows. *)
+	(** Write '\n' in POSIX, or write '\r\n' in Windows. *)
 	
 	val mode:
 		file_descr ->
@@ -288,16 +288,28 @@ val screen:
 
 val output_utf8: out_channel -> string -> int -> int -> unit;;
 (** Write a part of a UTF-8 encoded string to the given output channel.
-    On POSIX, It's same as [Pervasives.output]. *)
+    In POSIX, It's same as [Pervasives.output]. *)
 val output_string_utf8: out_channel -> string -> unit;;
 (** Write a UTF-8 encoded string to the given output channel.
-    On POSIX, It's same as [Pervasives.output_string]. *)
+    In POSIX, It's same as [Pervasives.output_string]. *)
 
 (** {6 Operations for input channel} *)
 
 val is_terminal_in: in_channel -> bool;;
 (** [is_terminal_in ic] returns true if given input channel is associated
     to terminal. *)
+
+val buffered_in: in_channel -> int;;
+(** Return size of buffered contents of given input channel
+    that has not been read yet. *)
+
+val buffered_line_in: in_channel -> int;;
+(** Return size of buffered contents of given input channel
+    that has not been read yet,
+    from current position until ['\n'].
+    If returned value is [max_int], no ['\n'] is in buffer.
+    It means current line is continuing.
+    Otherwide, all of current line is buffered. *)
 
 val mode:
 	in_channel ->
@@ -318,9 +330,16 @@ val mode:
 val input_line_utf8: in_channel -> string;;
 (** Read from the given input channel until a newline.
     And return a UTF-8 encoded string.
-    On POSIX, It's same as [Pervasives.input_line]. *)
+    In POSIX, It's same as [Pervasives.input_line]. *)
 
 (** {6 Miscellany} *)
+
+val utf8_of_locale: string -> string;;
+(** In windows, encode string from active code page to UTF-8.
+    In POSIX, It's no effect. *)
+val locale_of_utf8: string -> string;;
+(** In windows, encode string from UTF-8 to active code page.
+    In POSIX, It's no effect. *)
 
 val sleep: float -> unit;;
 (** [float] version of [Unix.sleep]. *)

@@ -5,6 +5,7 @@
 #include <caml/mlvalues.h>
 #include <caml/signals.h>
 #include <caml/unixsupport.h>
+#include "caml/io.h"
 
 #include <stdbool.h>
 #include <string.h>
@@ -1019,13 +1020,9 @@ CAMLprim value mlterminal_d_mode_byte(
 		argv[5]);
 }
 
-CAMLprim value mlterminal_d_input_line_utf8(
-	value in,
-	value s,
-	value pos,
-	value len)
+CAMLprim value mlterminal_d_input_line_utf8(value in)
 {
-	CAMLparam4(in, s, pos, len);
+	CAMLparam1(in);
 	CAMLlocal1(result);
 #ifdef __WINNT__
 	HANDLE f = handle_of_descr(in);
@@ -1469,6 +1466,110 @@ resized:
 	/* "\x1b[Sz" is fictitious escape sequence */
 	result = caml_copy_string("\x1b[Sz");
 done:
+#endif
+	CAMLreturn(result);
+}
+
+CAMLprim value mlterminal_buffered_in(value ic)
+{
+	CAMLparam1(ic);
+	struct channel *internal = Channel(ic);
+	Lock(internal);
+	size_t avail = internal->max - internal->curr;
+	Unlock(internal);
+	CAMLreturn(Val_long(avail));
+}
+
+CAMLprim value mlterminal_buffered_line_in(value ic)
+{
+	CAMLparam1(ic);
+	struct channel *internal = Channel(ic);
+	Lock(internal);
+	size_t avail = Max_long; /* line is not terminated */
+	char *p;
+	for(p = internal->curr; p < internal->max; ++p){
+		if(*p == '\n'){
+			++p; /* including '\n' */
+			avail = p - internal->curr;
+			break;
+		}
+	}
+	Unlock(internal);
+	CAMLreturn(Val_long(avail));
+}
+
+CAMLprim value mlterminal_utf8_of_locale(value s)
+{
+	CAMLparam1(s);
+	CAMLlocal1(result);
+#ifdef __WINNT__
+	char *mbcs_str = String_val(s);
+	size_t mbcs_length = caml_string_length(s);
+	size_t wide_max_length = mbcs_length; /* from DBCD to UTF-16 */
+	PWSTR wide_str = malloc((wide_max_length + 1) * sizeof(WCHAR));
+	if(wide_str == NULL) caml_raise_out_of_memory();
+	size_t wide_length = MultiByteToWideChar(
+		CP_ACP,
+		0,
+		mbcs_str,
+		mbcs_length,
+		wide_str,
+		wide_max_length);
+	size_t utf8_max_length = wide_length * 3; /* from UTF-16 to UTF-8 */
+	char *utf8_str = malloc((utf8_max_length + 1));
+	size_t utf8_length = WideCharToMultiByte(
+		CP_UTF8,
+		0,
+		wide_str,
+		wide_length,
+		utf8_str,
+		utf8_max_length,
+		NULL,
+		NULL);
+	result = caml_alloc_string(utf8_length);
+	memcpy(String_val(result), utf8_str, utf8_length);
+	free(wide_str);
+	free(utf8_str);
+#else
+	result = s;
+#endif
+	CAMLreturn(result);
+}
+
+CAMLprim value mlterminal_locale_of_utf8(value s)
+{
+	CAMLparam1(s);
+	CAMLlocal1(result);
+#ifdef __WINNT__
+	char *utf8_str = String_val(s);
+	size_t utf8_length = caml_string_length(s);
+	size_t wide_max_length = utf8_length; /* from UTF-8 to UTF-16 */
+	PWSTR wide_str = malloc((wide_max_length + 1) * sizeof(WCHAR));
+	if(wide_str == NULL) caml_raise_out_of_memory();
+	size_t wide_length = MultiByteToWideChar(
+		CP_UTF8,
+		0,
+		utf8_str,
+		utf8_length,
+		wide_str,
+		wide_max_length);
+	size_t mbcs_max_length = wide_length * 2; /* from UTF-16 to DBCS */
+	char *mbcs_str = malloc((mbcs_max_length + 1));
+	size_t mbcs_length = WideCharToMultiByte(
+		CP_ACP,
+		0,
+		wide_str,
+		wide_length,
+		mbcs_str,
+		mbcs_max_length,
+		NULL,
+		NULL);
+	result = caml_alloc_string(mbcs_length);
+	memcpy(String_val(result), mbcs_str, mbcs_length);
+	free(wide_str);
+	free(mbcs_str);
+#else
+	result = s;
 #endif
 	CAMLreturn(result);
 }

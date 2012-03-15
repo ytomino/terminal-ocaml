@@ -485,6 +485,12 @@ let output_string_utf8 out s = (
 
 let is_terminal_in = compose Descr.is_terminal Unix.descr_of_in_channel;;
 
+external buffered_in: in_channel -> int =
+	"mlterminal_buffered_in";;
+
+external buffered_line_in: in_channel -> int =
+	"mlterminal_buffered_line_in";;
+
 let mode ic ?echo ?canonical ?control_c ?mouse f = (
 	Descr.mode
 		(Unix.descr_of_in_channel ic)
@@ -495,7 +501,36 @@ let mode ic ?echo ?canonical ?control_c ?mouse f = (
 		f
 );;
 
-let input_line_utf8 = compose Descr.input_line_utf8 Unix.descr_of_in_channel;;
+external utf8_of_locale: string -> string = "mlterminal_utf8_of_locale";;
+external locale_of_utf8: string -> string = "mlterminal_locale_of_utf8";;
+
+let input_line_utf8 ic = (
+	if not (is_terminal_in ic) then (
+		input_line ic (* normal file *)
+	) else (
+		let buffered_line_length = buffered_line_in ic in
+		if buffered_line_length = max_int then (
+			(* current line is continuing... *)
+			let buffered_length = buffered_in ic in
+			if buffered_length > 0 then (
+				let buffered_s = String.create buffered_length in
+				really_input ic buffered_s 0 buffered_length;
+				let s1 = utf8_of_locale buffered_s in
+				let s2 = Descr.input_line_utf8 (Unix.descr_of_in_channel ic) in
+				s1 ^ s2
+			) else (
+				Descr.input_line_utf8 (Unix.descr_of_in_channel ic)
+			)
+		) else (
+			assert (buffered_line_length > 0);
+			let line_length = buffered_line_length - 1 in
+			let line_s = String.create line_length in
+			really_input ic line_s 0 line_length;
+			let (_: char) = input_char ic in (* drop '\n' *)
+			utf8_of_locale line_s
+		)
+	)
+);;
 
 external sleep: float -> unit =
 	"mlterminal_sleep";;
