@@ -252,7 +252,6 @@ let beep (n: int) = ();; (* dummy *)
 
 let sgn (x: int) = if x > 0 then +1 else if x < 0 then -1 else 0;;
 
-let nl = if Sys.os_type = "Win32" then "\r\n" else "\n";;
 let hbar = "‒";;
 let fill = "█";;
 let ball = "⚫";;
@@ -260,7 +259,7 @@ let ball = "⚫";;
 let rec run (stdout, stdin: Unix.file_descr * Unix.file_descr): unit = (
 	let cls () = Terminal.Descr.clear_screen stdout () in
 	let print = Terminal.Descr.output_string stdout in
-	let nl () = print nl in
+	let nl () = Terminal.Descr.output_newline stdout () in
 	let bs () = Terminal.Descr.move stdout (-1) (+1) in
 	let color n = (
 		let c =
@@ -579,30 +578,13 @@ let rec run (stdout, stdin: Unix.file_descr * Unix.file_descr): unit = (
 	goto_3000 ()
 );;
 
-let finally (f: 'a -> 'r) (arg: 'a) (cleanup: unit -> unit): 'r = (
-	let result =
-		begin try
-			f arg
-		with _ as exn ->
-			cleanup ();
-			raise exn
-		end
-	in
-	cleanup ();
-	result
-);;
-
 Sys.catch_break true;;
 Random.self_init ();;
 let stdout = Unix.stdout in
 let stdin = Unix.stdin in
-Terminal.Descr.screen stdout ~size:(40, 25) (fun (stdout: Unix.file_descr) ->
-	Terminal.Descr.mode stdin ~echo:false ~canonical:false (fun () ->
-		Terminal.Descr.show_cursor stdout false;
-		Terminal.Descr.wrap stdout false;
-		finally run (stdout, stdin) (fun () -> 
-			Terminal.Descr.show_cursor stdout true;
-			Terminal.Descr.wrap stdout true
+Terminal.Descr.screen stdout ~size:(40, 25) ~cursor:false ~wrap:false
+	(fun (stdout: Unix.file_descr) ->
+		Terminal.Descr.mode stdin ~echo:false ~canonical:false (fun () ->
+			run (stdout, stdin)
 		)
-	)
-);;
+	);;
