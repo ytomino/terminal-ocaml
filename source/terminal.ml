@@ -337,6 +337,9 @@ module Descr = struct
 	let output_string_utf8 f s =
 		output_utf8 f s 0 (String.length s);;
 	
+	external output_newline: file_descr -> unit -> unit =
+		"mlterminal_d_output_newline";;
+	
 	external mode:
 		file_descr ->
 		?echo:bool ->

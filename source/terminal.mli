@@ -183,6 +183,9 @@ module Descr: sig
 	val output_utf8: file_descr -> string -> int -> int -> unit;;
 	val output_string_utf8: file_descr -> string -> unit;;
 	
+	val output_newline: file_descr -> unit -> unit;;
+	(** Write '\n' on POSIX, or write '\r\n' on Windows. *)
+	
 	val mode:
 		file_descr ->
 		?echo:bool ->
@@ -207,7 +210,8 @@ end;;
 (** Operations for Unix.file_descr.
     [Descr.anyf fd] is equal to [anyf (Unix.out_channel_of_descr fd)]
     or [anyf (Unix.in_channel_of_descr fd)].
-    This module has additional function [is_empty] and [input_event].
+    This module has additional output function [output_newline],
+    and additional input functions [is_empty] and [input_event]
     for event handling. *)
 
 (** {6 Operations for output channel} *)

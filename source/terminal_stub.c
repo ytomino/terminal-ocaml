@@ -881,13 +881,29 @@ CAMLprim value mlterminal_d_output_utf8(
 	bool failed = !WriteConsoleW(f, wide_s, wide_length, &w, NULL);
 	free(wide_s);
 	if(failed){
-		if(!WriteFile(f, p, length, &w, NULL)){
+		if(!WriteFile(f, p, length, &w, NULL) || w != length){
 			failwith("mlterminal_d_output_utf8");
 		}
 	}
 #else
 	int f = handle_of_descr(out);
 	write(f, String_val(s) + Int_val(pos), Int_val(len));
+#endif
+	CAMLreturn(Val_unit);
+}
+
+CAMLprim value mlterminal_d_output_newline(value out, value unit)
+{
+	CAMLparam2(out, unit);
+#ifdef __WINNT__
+	HANDLE f = handle_of_descr(out);
+	DWORD w;
+	if(!WriteFile(f, "\r\n", 2, &w, NULL) || w != 2){
+		failwith("mlterminal_d_output_newline");
+	}
+#else
+	int f = handle_of_descr(out);
+	write(f, "\n", 1);
 #endif
 	CAMLreturn(Val_unit);
 }
