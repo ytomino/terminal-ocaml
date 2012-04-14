@@ -3,11 +3,10 @@
 (** {6 Title} *)
 
 val set_title: string -> unit;;
-(** Set title to given local encoded string.
-    In POSIX, it's no effect. *)
+(** Set title to given local encoded string. *)
 val set_title_utf8: string -> unit;;
 (** Set title to given UTF-8 encoded string.
-    In POSIX, it's no effect. *)
+    In POSIX, it's same as [set_title]. *)
 
 (** {6 Color type and values} *)
 

@@ -284,7 +284,12 @@ CAMLprim value mlterminal_set_title(value title)
 #ifdef __WINNT__
 	SetConsoleTitle(String_val(title));
 #else
-	/* no effect */
+	if(!isatty(stdout)){
+		failwith("mlterminal_d_position(stdout is not associated to terminal)");
+	}
+	write(stdout, "\x1b]0;", 4);
+	write(stdout, String_val(title), caml_string_length(title));
+	write(stdout, "\x07", 1);
 #endif
 	CAMLreturn(Val_unit);
 }
@@ -307,7 +312,7 @@ CAMLprim value mlterminal_set_title_utf8(value title)
 	SetConsoleTitleW(wide_title);
 	free(wide_title);
 #else
-	/* no effect */
+	mlterminal_set_title(title);
 #endif
 	CAMLreturn(Val_unit);
 }
