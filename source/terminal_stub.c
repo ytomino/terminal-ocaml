@@ -159,6 +159,13 @@ static value vk_f12[SS_MAX];
 #include <sys/ioctl.h>
 #include <sys/select.h>
 
+#undef stdin
+#undef stdout
+#undef stderr
+#define stdin 0
+#define stdout 1
+#define stderr 2
+
 static int handle_of_descr(value x)
 {
 	return Int_val(x);
@@ -413,21 +420,21 @@ CAMLprim value mlterminal_d_position(value out)
 	x = info.dwCursorPosition.X;
 	y = info.dwCursorPosition.Y;
 #else
-	if(!isatty(2)){
+	if(!isatty(stdin)){
 		failwith("mlterminal_d_position(stdin is not associated to terminal)");
 	}
 	int f = handle_of_descr(out);
 	struct termios old_settings, new_settings;
-	tcgetattr(2, &old_settings);
+	tcgetattr(stdin, &old_settings);
 	new_settings = old_settings;
 	new_settings.c_lflag &= ~(ECHO | ICANON);
 	new_settings.c_cc[VMIN] = 1;
 	new_settings.c_cc[VTIME] = 0;
-	tcsetattr(2, TCSAFLUSH, &new_settings);
+	tcsetattr(stdin, TCSAFLUSH, &new_settings);
 	write(f, "\x1b[6n", 4);
 	char buf[256];
 	int i = 0;
-	while(read(2, &buf[i], 1) == 1){
+	while(read(stdin, &buf[i], 1) == 1){
 		if(i == 0){
 			if(buf[i] == '\x1b'){
 				++i;
@@ -438,7 +445,7 @@ CAMLprim value mlterminal_d_position(value out)
 			if(c == 'R') break;
 		}
 	}
-	tcsetattr(2, TCSANOW, &old_settings);
+	tcsetattr(stdin, TCSANOW, &old_settings);
 	if(sscanf(buf, "\x1b[%d;%dR", &x, &y) != 2){
 		failwith("mlterminal_d_position");
 	}
@@ -959,9 +966,10 @@ CAMLprim value mlterminal_d_mode(
 	result = caml_callback_exn(closure, Val_unit);
 	SetConsoleMode(f, old_mode);
 #else
+	int f = handle_of_descr(in);
 	bool pred_mouse_mode = current_mouse_mode;
 	struct termios old_settings, new_settings;
-	if(tcgetattr(2, &old_settings) < 0){
+	if(tcgetattr(f, &old_settings) < 0){
 		failwith("mlterminal_d_mode(tcgetattr)");
 	}
 	new_settings = old_settings;
@@ -988,18 +996,18 @@ CAMLprim value mlterminal_d_mode(
 			new_settings.c_lflag &= ~ISIG;
 		}
 	}
-	tcsetattr(2, TCSAFLUSH, &new_settings);
+	tcsetattr(f, TCSAFLUSH, &new_settings);
 	if(Is_block(mouse)){
-		if(!isatty(0)){
+		if(!isatty(stdout)){
 			failwith("mlterminal_d_mode(stdout is not associated to terminal)");
 		}
-		set_mouse_mode(0, Bool_val(Field(mouse, 0)));
+		set_mouse_mode(stdout, Bool_val(Field(mouse, 0)));
 	}
 	result = caml_callback_exn(closure, Val_unit);
 	if(current_mouse_mode != pred_mouse_mode){
 		set_mouse_mode(0, pred_mouse_mode);
 	}
-	tcsetattr(2, TCSANOW, &old_settings);
+	tcsetattr(f, TCSANOW, &old_settings);
 #endif
 	if(Is_exception_result(result)){
 		caml_raise(Extract_exception(result));
