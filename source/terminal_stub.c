@@ -15,6 +15,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+typedef HANDLE handlt_t;
+
 static HANDLE handle_of_descr(value x)
 {
 	if(Descr_kind_val(x) != KIND_HANDLE){
@@ -166,6 +168,8 @@ static value vk_f12[SS_MAX];
 #define stdout 1
 #define stderr 2
 
+typedef int handle_t;
+
 static int handle_of_descr(value x)
 {
 	return Int_val(x);
@@ -198,6 +202,13 @@ static void set_restart_on_sigwinch(bool restart)
 	sa.sa_flags = restart ? SA_RESTART : 0;
 	sa.sa_handler = sigwinch_handler;
 	sigaction(SIGWINCH, &sa, NULL);
+}
+
+void get_size(int fd, struct ttysize *win)
+{
+	if(ioctl(fd, TIOCGSIZE, win) < 0){
+		failwith("mlterminal(ioctl, failed to get size)");
+	}
 }
 
 void set_size(int fd, struct ttysize const *win)
@@ -321,11 +332,10 @@ CAMLprim value mlterminal_d_is_terminal(value out)
 {
 	CAMLparam1(out);
 	CAMLlocal1(result);
+	handle_t f = handle_of_descr(out);
 #ifdef __WINNT__
-	HANDLE f = handle_of_descr(out);
 	result = Val_bool(GetFileType(f) == FILE_TYPE_CHAR);
 #else
-	int f = handle_of_descr(out);
 	result = Val_bool(isatty(f));
 #endif
 	CAMLreturn(result);
@@ -336,20 +346,17 @@ CAMLprim value mlterminal_d_size(value out)
 	CAMLparam1(out);
 	CAMLlocal1(result);
 	int w, h;
+	handle_t f = handle_of_descr(out);
 #ifdef __WINNT__
-	HANDLE f = handle_of_descr(out);
 	install_window_input();
 	CONSOLE_SCREEN_BUFFER_INFO info;
 	GetConsoleScreenBufferInfo(f, &info);
 	w = info.dwSize.X;
 	h = info.dwSize.Y;
 #else
-	int f = handle_of_descr(out);
 	install_sigwinch();
 	struct ttysize win;
-	if(ioctl(f, TIOCGSIZE, &win) < 0){
-		failwith("mlterminal_d_size");
-	}
+	get_size(f, &win);
 	w = win.ts_cols;
 	h = win.ts_lines;
 #endif
@@ -362,14 +369,13 @@ CAMLprim value mlterminal_d_size(value out)
 CAMLprim value mlterminal_d_set_size(value out, value w, value h)
 {
 	CAMLparam3(out, w, h);
+	handle_t f = handle_of_descr(out);
 #ifdef __WINNT__
-	HANDLE f = handle_of_descr(out);
 	install_window_input();
 	int new_w = Int_val(w);
 	int new_h = Int_val(h);
 	set_size(f, new_w, new_h, f);
 #else
-	int f = handle_of_descr(out);
 	install_sigwinch();
 	struct ttysize win;
 	win.ts_cols = Int_val(w);
@@ -384,8 +390,8 @@ CAMLprim value mlterminal_d_view(value out)
 	CAMLparam1(out);
 	CAMLlocal1(result);
 	int left, top, right, bottom;
+	handle_t f = handle_of_descr(out);
 #ifdef __WINNT__
-	HANDLE f = handle_of_descr(out);
 	install_window_input();
 	CONSOLE_SCREEN_BUFFER_INFO info;
 	GetConsoleScreenBufferInfo(f, &info);
@@ -394,12 +400,9 @@ CAMLprim value mlterminal_d_view(value out)
 	right = info.srWindow.Right;
 	bottom = info.srWindow.Bottom;
 #else
-	int f = handle_of_descr(out);
 	install_sigwinch();
 	struct ttysize win;
-	if(ioctl(f, TIOCGSIZE, &win) < 0){
-		failwith("mlterminal_d_view");
-	}
+	get_size(f, &win);
 	left = 0;
 	top = 0;
 	right = win.ts_cols - 1;
@@ -418,8 +421,8 @@ CAMLprim value mlterminal_d_position(value out)
 	CAMLparam1(out);
 	CAMLlocal1(result);
 	int x, y;
+	handle_t f = handle_of_descr(out);
 #ifdef __WINNT__
-	HANDLE f = handle_of_descr(out);
 	CONSOLE_SCREEN_BUFFER_INFO info;
 	GetConsoleScreenBufferInfo(f, &info);
 	x = info.dwCursorPosition.X;
@@ -428,7 +431,6 @@ CAMLprim value mlterminal_d_position(value out)
 	if(!isatty(stdin)){
 		failwith("mlterminal_d_position(stdin is not associated to terminal)");
 	}
-	int f = handle_of_descr(out);
 	struct termios old_settings, new_settings;
 	tcgetattr(stdin, &old_settings);
 	new_settings = old_settings;
@@ -469,13 +471,12 @@ CAMLprim value mlterminal_d_set_position(
 	value y)
 {
 	CAMLparam3(out, x, y);
+	handle_t f = handle_of_descr(out);
 #ifdef __WINNT__
-	HANDLE f = handle_of_descr(out);
 	SetConsoleCursorPosition(f, (COORD){
 		.X = Int_val(x),
 		.Y = Int_val(y)});
 #else
-	int f = handle_of_descr(out);
 	int abs_x = Int_val(x) + 1;
 	int abs_y = Int_val(y) + 1;
 	char buf[256];
@@ -491,15 +492,14 @@ CAMLprim value mlterminal_d_move(
 	value y)
 {
 	CAMLparam3(out, x, y);
+	handle_t f = handle_of_descr(out);
 #ifdef __WINNT__
-	HANDLE f = handle_of_descr(out);
 	CONSOLE_SCREEN_BUFFER_INFO info;
 	GetConsoleScreenBufferInfo(f, &info);
 	SetConsoleCursorPosition(f, (COORD){
 		.X = info.dwCursorPosition.X + Int_val(x),
 		.Y = info.dwCursorPosition.Y + Int_val(y)});
 #else
-	int f = handle_of_descr(out);
 	int rel_x = Int_val(x);
 	int rel_y = Int_val(y);
 	char buf[256];
@@ -525,15 +525,14 @@ CAMLprim value mlterminal_d_move(
 CAMLprim value mlterminal_d_move_to_bol(value out, value unit)
 {
 	CAMLparam2(out, unit);
+	handle_t f = handle_of_descr(out);
 #ifdef __WINNT__
-	HANDLE f = handle_of_descr(out);
 	CONSOLE_SCREEN_BUFFER_INFO info;
 	GetConsoleScreenBufferInfo(f, &info);
 	SetConsoleCursorPosition(f, (COORD){
 		.X = 0,
 		.Y = info.dwCursorPosition.Y});
 #else
-	int f = handle_of_descr(out);
 	write(f, "\r", 1);
 #endif
 	CAMLreturn(Val_unit);
@@ -553,8 +552,8 @@ CAMLprim value mlterminal_d_color(
 {
 	CAMLparam5(out, reset, bold, underscore, blink);
 	CAMLxparam5(reverse, concealed, foreground, background, unit);
+	handle_t f = handle_of_descr(out);
 #ifdef __WINNT__
-	HANDLE f = handle_of_descr(out);
 	CONSOLE_SCREEN_BUFFER_INFO info;
 	GetConsoleScreenBufferInfo(f, &info);
 	WORD attributes = info.wAttributes;
@@ -582,7 +581,6 @@ CAMLprim value mlterminal_d_color(
 	}
 	SetConsoleTextAttribute(f, attributes);
 #else
-	int f = handle_of_descr(out);
 	char buf[256];
 	int i = 0;
 	buf[i++] = '\x1b';
@@ -654,8 +652,8 @@ CAMLprim value mlterminal_d_save(value out, value closure)
 {
 	CAMLparam2(out, closure);
 	CAMLlocal1(result);
+	handle_t f = handle_of_descr(out);
 #ifdef __WINNT__
-	HANDLE f = handle_of_descr(out);
 	CONSOLE_SCREEN_BUFFER_INFO info;
 	GetConsoleScreenBufferInfo(f, &info);
 	result = caml_callback_exn(closure, Val_unit);
@@ -664,7 +662,6 @@ CAMLprim value mlterminal_d_save(value out, value closure)
 		.Y = info.dwCursorPosition.Y});
 	SetConsoleTextAttribute(f, info.wAttributes);
 #else
-	int f = handle_of_descr(out);
 	/* write(f, "\x1b[s", 3); */
 	write(f, "\x1b""7", 2);
 	result = caml_callback_exn(closure, Val_unit);
@@ -680,8 +677,8 @@ CAMLprim value mlterminal_d_save(value out, value closure)
 CAMLprim value mlterminal_d_clear_screen(value out, value unit)
 {
 	CAMLparam2(out, unit);
+	handle_t f = handle_of_descr(out);
 #ifdef __WINNT__
-	HANDLE f = handle_of_descr(out);
 	CONSOLE_SCREEN_BUFFER_INFO info;
 	GetConsoleScreenBufferInfo(f, &info);
 	clear_rect(f, &(SMALL_RECT){
@@ -690,7 +687,6 @@ CAMLprim value mlterminal_d_clear_screen(value out, value unit)
 		.Right = info.dwSize.X - 1,
 		.Bottom = info.dwSize.Y - 1});
 #else
-	int f = handle_of_descr(out);
 	write(f, "\x1b[2J", 4);
 #endif
 	CAMLreturn(Val_unit);
@@ -699,8 +695,8 @@ CAMLprim value mlterminal_d_clear_screen(value out, value unit)
 CAMLprim value mlterminal_d_clear_eol(value out, value unit)
 {
 	CAMLparam2(out, unit);
+	handle_t f = handle_of_descr(out);
 #ifdef __WINNT__
-	HANDLE f = handle_of_descr(out);
 	CONSOLE_SCREEN_BUFFER_INFO info;
 	GetConsoleScreenBufferInfo(f, &info);
 	clear_rect(f, &(SMALL_RECT){
@@ -709,7 +705,6 @@ CAMLprim value mlterminal_d_clear_eol(value out, value unit)
 		.Right = info.dwSize.X - 1,
 		.Bottom = info.dwCursorPosition.Y});
 #else
-	int f = handle_of_descr(out);
 	write(f, "\x1b[K", 3);
 #endif
 	CAMLreturn(Val_unit);
@@ -718,8 +713,8 @@ CAMLprim value mlterminal_d_clear_eol(value out, value unit)
 CAMLprim value mlterminal_d_scroll(value out, value y)
 {
 	CAMLparam2(out, y);
+	handle_t f = handle_of_descr(out);
 #ifdef __WINNT__
-	HANDLE f = handle_of_descr(out);
 	CONSOLE_SCREEN_BUFFER_INFO info;
 	GetConsoleScreenBufferInfo(f, &info);
 	CHAR_INFO fill;
@@ -731,7 +726,6 @@ CAMLprim value mlterminal_d_scroll(value out, value y)
 		(COORD){.X = info.srWindow.Left, .Y = info.srWindow.Top - Int_val(y)},
 		&fill);
 #else
-	int f = handle_of_descr(out);
 	int off_y = Int_val(y);
 	char buf[256];
 	int len;
@@ -739,9 +733,7 @@ CAMLprim value mlterminal_d_scroll(value out, value y)
 #if defined(__APPLE__) && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1070
 		int i;
 		struct ttysize win;
-		if(ioctl(f, TIOCGSIZE, &win) < 0){
-			failwith("mlterminal_d_scroll");
-		}
+		get_size(f, &win);
 		len = snprintf(buf, 256, "\x1b[%d;0H", win.ts_lines - 1);
 		write(f, buf, len);
 		for(i = 0; i < off_y; ++i){
@@ -770,26 +762,16 @@ CAMLprim value mlterminal_d_scroll(value out, value y)
 CAMLprim value mlterminal_d_show_cursor(value out, value visible)
 {
 	CAMLparam2(out, visible);
-#ifdef __WINNT__
-	HANDLE f = handle_of_descr(out);
+	handle_t f = handle_of_descr(out);
 	set_cursor_visible(f, Bool_val(visible));
-#else
-	int f = handle_of_descr(out);
-	set_cursor_visible(f, Bool_val(visible));
-#endif
 	CAMLreturn(Val_unit);
 }
 
 CAMLprim value mlterminal_d_wrap(value out, value enabled)
 {
 	CAMLparam2(out, enabled);
-#ifdef __WINNT__
-	HANDLE f = handle_of_descr(out);
+	handle_t f = handle_of_descr(out);
 	set_wrap(f, Bool_val(enabled));
-#else
-	int f = handle_of_descr(out);
-	set_wrap(f, Bool_val(enabled));
-#endif
 	CAMLreturn(Val_unit);
 }
 
@@ -802,8 +784,8 @@ CAMLprim value mlterminal_d_screen(
 {
 	CAMLparam5(out, size, cursor, wrap, closure);
 	CAMLlocal2(result, new_out);
+	handle_t f = handle_of_descr(out);
 #ifdef __WINNT__
-	HANDLE f = handle_of_descr(out);
 	HANDLE new_f = CreateConsoleScreenBuffer(
 		GENERIC_READ | GENERIC_WRITE,
 		0,
@@ -829,7 +811,6 @@ CAMLprim value mlterminal_d_screen(
 	SetConsoleActiveScreenBuffer(f);
 	CloseHandle(new_f);
 #else
-	int f = handle_of_descr(out);
 	bool pred_cursor_visible = current_cursor_visible;
 	bool pred_wrap = current_wrap;
 	write(f, "\x1b""7\x1b[?47h", 8); /* enter_ca_mode */
@@ -838,9 +819,7 @@ CAMLprim value mlterminal_d_screen(
 		install_sigwinch();
 		struct ttysize win;
 		value s = Field(size, 0);
-		if(ioctl(f, TIOCGSIZE, &old_win) < 0){
-			failwith("mlterminal_d_screen(failed to get size)");
-		}
+		get_size(f, &old_win);
 		win.ts_cols = Int_val(Field(s, 0));
 		win.ts_lines = Int_val(Field(s, 1));
 		set_size(f, &win);
@@ -877,8 +856,8 @@ CAMLprim value mlterminal_d_output_utf8(
 	value len)
 {
 	CAMLparam4(out, s, pos, len);
+	handle_t f = handle_of_descr(out);
 #ifdef __WINNT__
-	HANDLE f = handle_of_descr(out);
 	size_t length = Int_val(len);
 	PWSTR wide_s = malloc((length + 1) * sizeof(WCHAR));
 	if(wide_s == NULL) caml_raise_out_of_memory();
@@ -899,7 +878,6 @@ CAMLprim value mlterminal_d_output_utf8(
 		}
 	}
 #else
-	int f = handle_of_descr(out);
 	write(f, String_val(s) + Int_val(pos), Int_val(len));
 #endif
 	CAMLreturn(Val_unit);
@@ -908,14 +886,13 @@ CAMLprim value mlterminal_d_output_utf8(
 CAMLprim value mlterminal_d_output_newline(value out, value unit)
 {
 	CAMLparam2(out, unit);
+	handle_t f = handle_of_descr(out);
 #ifdef __WINNT__
-	HANDLE f = handle_of_descr(out);
 	DWORD w;
 	if(!WriteFile(f, "\r\n", 2, &w, NULL) || w != 2){
 		failwith("mlterminal_d_output_newline");
 	}
 #else
-	int f = handle_of_descr(out);
 	write(f, "\n", 1);
 #endif
 	CAMLreturn(Val_unit);
@@ -932,8 +909,8 @@ CAMLprim value mlterminal_d_mode(
 	CAMLparam5(in, echo, canonical, ctrl_c, mouse);
 	CAMLxparam1(closure);
 	CAMLlocal1(result);
+	handle_t f = handle_of_descr(in);
 #ifdef __WINNT__
-	HANDLE f = handle_of_descr(in);
 	DWORD old_mode, new_mode;
 	if(!GetConsoleMode(f, &old_mode)){
 		failwith("mlterminal_d_mode(GetConsoleMode)");
@@ -971,7 +948,6 @@ CAMLprim value mlterminal_d_mode(
 	result = caml_callback_exn(closure, Val_unit);
 	SetConsoleMode(f, old_mode);
 #else
-	int f = handle_of_descr(in);
 	bool pred_mouse_mode = current_mouse_mode;
 	struct termios old_settings, new_settings;
 	if(tcgetattr(f, &old_settings) < 0){
@@ -1037,8 +1013,8 @@ CAMLprim value mlterminal_d_input_line_utf8(value in)
 {
 	CAMLparam1(in);
 	CAMLlocal1(result);
+	handle_t f = handle_of_descr(in);
 #ifdef __WINNT__
-	HANDLE f = handle_of_descr(in);
 	size_t max_length;
 	size_t length;
 	char *buf;
@@ -1126,7 +1102,6 @@ make_result:
 	memcpy(String_val(result), buf, length);
 	free(buf);
 #else
-	int f = handle_of_descr(in);
 	size_t max_length = 256;
 	size_t length = 0;
 	char *buf = malloc(max_length);
@@ -1163,8 +1138,8 @@ CAMLprim value mlterminal_d_is_empty(value in)
 {
 	CAMLparam1(in);
 	CAMLlocal1(result);
+	handle_t f = handle_of_descr(in);
 #ifdef __WINNT__
-	HANDLE f = handle_of_descr(in);
 	INPUT_RECORD input_record;
 	DWORD r;
 	for(;;){
@@ -1194,7 +1169,6 @@ CAMLprim value mlterminal_d_is_empty(value in)
 	}
 done:
 #else
-	int f = handle_of_descr(in);
 	result = Val_bool(!resized && is_empty(f));
 #endif
 	CAMLreturn(result);
@@ -1204,8 +1178,8 @@ CAMLprim value mlterminal_d_input_event(value in)
 {
 	CAMLparam1(in);
 	CAMLlocal1(result);
+	handle_t f = handle_of_descr(in);
 #ifdef __WINNT__
-	HANDLE f = handle_of_descr(in);
 	INPUT_RECORD input_record;
 	DWORD r;
 	char buf[256];
@@ -1393,7 +1367,6 @@ CAMLprim value mlterminal_d_input_event(value in)
 	}
 done:
 #else
-	int f = handle_of_descr(in);
 	if(resized){
 		goto resized;
 	}else{
