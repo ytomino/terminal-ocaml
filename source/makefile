@@ -22,8 +22,10 @@ endif
 
 ifneq ($(HOST),$(TARGET))
 PROGRAMPREFIX=$(TARGET)-
+DIRSUFFIX=-$(TARGET)
 else
 PROGRAMPREFIX=
+DIRSUFFIX=
 endif
 
 ifneq ($(findstring mingw,$(TARGET)),)
@@ -53,7 +55,7 @@ OCAMLLIBDIR=$(shell $(OCAMLC) -where)
 endif
 
 DESTDIR=$(OCAMLLIBDIR)
-BUILDDIR=build
+BUILDDIR=build$(DIRSUFFIX)
 
 all:
 

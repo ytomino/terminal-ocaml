@@ -4,8 +4,10 @@ TARGET=$(HOST)
 
 ifneq ($(HOST),$(TARGET))
 PROGRAMPREFIX=$(TARGET)-
+DIRSUFFIX=-$(TARGET)
 else
 PROGRAMPREFIX=
+DIRSUFFIX=
 ifneq ($(shell rlwrap --version),)
 RLWRAP=rlwrap
 endif
@@ -14,7 +16,7 @@ endif
 OCAMLC=$(PROGRAMPREFIX)ocamlc
 OCAMLOPT=$(PROGRAMPREFIX)ocamlopt
 
-BUILDDIR=build
+BUILDDIR=build$(DIRSUFFIX)
 
 export CAML_LD_LIBRARY_PATH=$(BUILDDIR)/stublibs
 
@@ -22,7 +24,11 @@ ITEMS=$(basename $(wildcard *.ml))
 
 .PHONY: all all-byte all-opt interactive man clean $(addprefix test-,$(ITEMS))
 
+ifneq ($(HOST),$(TARGET))
+all: all-opt
+else
 all: all-byte all-opt
+endif
 
 all-byte: $(addprefix $(BUILDDIR)/,$(addsuffix .byte.exe,$(ITEMS)))
 all-opt: $(addprefix $(BUILDDIR)/,$(addsuffix .opt.exe,$(ITEMS)))
