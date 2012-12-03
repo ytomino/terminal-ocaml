@@ -2,10 +2,12 @@
 
 (** {6 Title} *)
 
-val set_title: string -> unit;;
-(** Set title to given local encoded string. *)
-val set_title_utf8: string -> unit;;
-(** Set title to given UTF-8 encoded string.
+val title: string -> (unit -> 'a) -> 'a;;
+(** [title t f] saves old window title,
+    sets it to given local encoded string [t], and restores it. *)
+val title_utf8: string -> (unit -> 'a) -> 'a;;
+(** [title_utf8 t f] saves old window title,
+    sets it to given UTF-8 encoded string [t], and restores it.
     In POSIX, it's same as [set_title]. *)
 
 (** {6 Color type and values} *)

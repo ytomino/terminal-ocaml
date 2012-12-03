@@ -10,10 +10,10 @@
        http://msdn.microsoft.com/en-us/library/windows/desktop/
          ms682087(v=vs.85).aspx *)
 
-external set_title: string -> unit =
-	"mlterminal_set_title";;
-external set_title_utf8: string -> unit =
-	"mlterminal_set_title_utf8";;
+external title: string -> (unit -> 'a) -> 'a =
+	"mlterminal_title";;
+external title_utf8: string -> (unit -> 'a) -> 'a =
+	"mlterminal_title_utf8";;
 
 type color = {
 	red: int;

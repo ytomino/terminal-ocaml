@@ -15,6 +15,22 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+static PWSTR get_title(void)
+{
+	size_t max_length = 256;
+	PWSTR result = malloc(max_length * sizeof(WCHAR));
+	while(GetConsoleTitleW(result, max_length) > 0){
+		max_length *= 2;
+		PWSTR new_result = realloc(result, max_length * sizeof(WCHAR));
+		if(new_result == NULL){
+			free(result);
+			caml_raise_out_of_memory();
+		}
+		result = new_result;
+	}
+	return result;
+}
+
 typedef HANDLE handlt_t;
 
 static HANDLE handle_of_descr(value x)
@@ -289,26 +305,49 @@ static void set_mouse_mode(int fd, bool flag)
 
 #endif
 
-CAMLprim value mlterminal_set_title(value title)
+CAMLprim value mlterminal_title(value title, value closure)
 {
-	CAMLparam1(title);
+	CAMLparam2(title, closure);
+	CAMLlocal1(result);
 #ifdef __WINNT__
+	/* save */
+	PWSTR old_title = get_title();
+	/* set */
 	SetConsoleTitle(String_val(title));
+	/* callback */
+	result = caml_callback_exn(closure, Val_unit);
+	/* restore */
+	SetConsoleTitleW(old_title);
+	free(old_title);
 #else
 	if(!isatty(stdout)){
 		failwith("mlterminal_d_position(stdout is not associated to terminal)");
 	}
-	write(stdout, "\x1b]0;", 4);
+	/* save */
+	write(stdout, "\x1b[22;2t", 7);
+	/* set */
+	write(stdout, "\x1b]2;", 4);
 	write(stdout, String_val(title), caml_string_length(title));
 	write(stdout, "\x07", 1);
+	/* callback */
+	result = caml_callback_exn(closure, Val_unit);
+	/* restore */
+	write(stdout, "\x1b[23;2t", 7);
 #endif
-	CAMLreturn(Val_unit);
+	if(Is_exception_result(result)){
+		caml_raise(Extract_exception(result));
+	}
+	CAMLreturn(result);
 }
 
-CAMLprim value mlterminal_set_title_utf8(value title)
+CAMLprim value mlterminal_title_utf8(value title, value closure)
 {
-	CAMLparam1(title);
+	CAMLparam2(title, closure);
+	CAMLlocal1(result);
 #ifdef __WINNT__
+	/* save */
+	PWSTR old_title = get_title();
+	/* set */
 	size_t length = caml_string_length(title);
 	PWSTR wide_title = malloc((length + 1) * sizeof(WCHAR));
 	if(wide_title == NULL) caml_raise_out_of_memory();
@@ -322,10 +361,18 @@ CAMLprim value mlterminal_set_title_utf8(value title)
 	wide_title[wide_length] = L'\0';
 	SetConsoleTitleW(wide_title);
 	free(wide_title);
+	/* callback */
+	result = caml_callback_exn(closure, Val_unit);
+	/* restore */
+	SetConsoleTitleW(old_title);
+	free(old_title);
 #else
-	mlterminal_set_title(title);
+	result = mlterminal_title(title, closure);
 #endif
-	CAMLreturn(Val_unit);
+	if(Is_exception_result(result)){
+		caml_raise(Extract_exception(result));
+	}
+	CAMLreturn(result);
 }
 
 CAMLprim value mlterminal_d_is_terminal(value out)
