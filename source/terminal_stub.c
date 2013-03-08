@@ -321,7 +321,7 @@ CAMLprim value mlterminal_title(value title, value closure)
 	free(old_title);
 #else
 	if(!isatty(stdout)){
-		failwith("mlterminal_d_position(stdout is not associated to terminal)");
+		failwith("mlterminal_title(stdout is not associated to terminal)");
 	}
 	/* save */
 	write(stdout, "\x1b[22;2t", 7);
