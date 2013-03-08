@@ -222,6 +222,7 @@ static void set_restart_on_sigwinch(bool restart)
 
 void get_size(int fd, struct ttysize *win)
 {
+	/* Have it to write (fd, "\x1b[18t", 5); and receive "\x1b[8;W;Ht" ? */
 	if(ioctl(fd, TIOCGSIZE, win) < 0){
 		failwith("mlterminal(ioctl, failed to get size)");
 	}
@@ -229,9 +230,16 @@ void get_size(int fd, struct ttysize *win)
 
 void set_size(int fd, struct ttysize const *win)
 {
+#if defined(__APPLE__)
+	char buf[256];
+	int len;
+	len = snprintf(buf, 256, "\x1b[8;%d;%dt", win->ts_lines, win->ts_cols);
+	write(fd, buf, len); /* for Terminal.app, also xterm can accept this */
+#else
 	if(ioctl(fd, TIOCSSIZE, win) < 0){
 		failwith("mlterminal(ioctl, failed to set size)");
 	}
+#endif
 }
 
 static int code_of_color(value x)
