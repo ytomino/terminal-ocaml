@@ -71,7 +71,7 @@ Terminal.title filename (fun () ->
 						| 'j' when !p + !height - 1 < line_count ->
 							Terminal.clear_line stdout ();
 							output_string stdout (trim lines.(!p + !height - 1));
-							output_char stdout '\n';
+							Terminal.scroll stdout 1;
 							incr p
 						| 'k' when !p > 0 ->
 							decr p;

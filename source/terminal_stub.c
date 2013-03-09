@@ -789,10 +789,10 @@ CAMLprim value mlterminal_d_scroll(value out, value y)
 		int i;
 		struct ttysize win;
 		get_size(f, &win);
-		len = snprintf(buf, 256, "\x1b[%d;0H", win.ts_lines - 1);
+		len = snprintf(buf, 256, "\x1b[%d;0H", win.ts_lines);
 		write(f, buf, len);
 		for(i = 0; i < off_y; ++i){
-			write(f, "\n", 1);
+			write(f, "\x1b" "D", 2);
 		}
 #else
 		len = snprintf(buf, 256, "\x1b[%dS", off_y);
