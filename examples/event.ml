@@ -28,6 +28,9 @@ Terminal.Descr.mode Unix.stdin ~echo:false ~canonical:false ~mouse (fun () ->
 				if Terminal.mem Terminal.shift ss then (
 					desc := !desc ^ "shift+";
 				);
+				if Terminal.mem Terminal.meta ss then (
+					desc := !desc ^ "meta+";
+				);
 				if Terminal.mem Terminal.control ss then (
 					desc := !desc ^ "control+";
 				);

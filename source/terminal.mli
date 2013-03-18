@@ -106,6 +106,7 @@ val empty: shift_state;;
 (** The empty set. *)
 
 val shift: shift_key;;
+val meta: shift_key;;
 val control: shift_key;;
 val alt: shift_key;;
 

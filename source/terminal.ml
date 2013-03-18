@@ -235,6 +235,7 @@ type shift_key = int;;
 let empty = 0;;
 
 let shift = 1;;
+let meta = 2;;
 let control = 4;;
 let alt = 8;;
 
@@ -279,7 +280,7 @@ let shift_of_event ev = (
 		let m = int_of_char ev.[3] in
 		let result = empty in
 		let result = if m land 4 <> 0 then add shift result else result in
-		let result = if m land 8 <> 0 then add alt result else result in
+		let result = if m land 8 <> 0 then add meta result else result in
 		let result = if m land 16 <> 0 then add control result else result in
 		result
 	) else (
