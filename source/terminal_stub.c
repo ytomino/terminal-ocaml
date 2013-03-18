@@ -1249,6 +1249,7 @@ CAMLprim value mlterminal_d_input_event(value in)
 		}else{
 			PKEY_EVENT_RECORD k;
 			PMOUSE_EVENT_RECORD m;
+			PWINDOW_BUFFER_SIZE_RECORD w;
 			switch(input_record.EventType){
 			case KEY_EVENT:
 				k = &input_record.Event.KeyEvent;
@@ -1410,10 +1411,12 @@ CAMLprim value mlterminal_d_input_event(value in)
 				buf[4] = m->dwMousePosition.X + 0x21;
 				buf[5] = m->dwMousePosition.Y + 0x22;
 				buf[6] = '\0';
-				break;
+				result = caml_copy_string(buf);
+				goto done;
 			case WINDOW_BUFFER_SIZE_EVENT:
-				/* "\x1b[Sz" is fictitious escape sequence */
-				result = caml_copy_string("\x1b[Sz");
+				w = &input_record.Event.WindowBufferSizeEvent;
+				wsprintf(buf, "\x1b[8;%d;%dt", w->dwSize.Y, w->dwSize.X);
+				result = caml_copy_string(buf);
 				goto done;
 			default:
 				; /* continue */
@@ -1422,10 +1425,10 @@ CAMLprim value mlterminal_d_input_event(value in)
 	}
 done:
 #else
+	char buf[256];
 	if(resized){
 		goto resized;
 	}else{
-		char buf[64];
 		int i = 0;
 		enum {
 			s_exit, s_init, s_escape, s_escape_param, s_escape_param_N,
@@ -1504,8 +1507,14 @@ done:
 	goto done;
 resized:
 	resized = false;
-	/* "\x1b[Sz" is fictitious escape sequence */
-	result = caml_copy_string("\x1b[Sz");
+	if(!isatty(stdout)){
+		failwith("mlterminal_d_input_event"
+			"(stdout is not associated to terminal)");
+	}
+	struct ttysize win;
+	get_size(stdout, &win);
+	snprintf(buf, sizeof(buf), "\x1b[8;%d;%dt", win.ts_lines, win.ts_cols);
+	result = caml_copy_string(buf);
 done:
 #endif
 	CAMLreturn(result);

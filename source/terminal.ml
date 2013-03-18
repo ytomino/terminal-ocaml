@@ -61,10 +61,55 @@ let string_of_event ev = (
 	ev
 );;
 
+let is_digit c = c >= '0' && c <= '9';;
+
+let rec take_digits s start = (
+	if String.length s <= start || not (is_digit s.[start]) then start else
+	take_digits s (start + 1)
+);;
+
+let read_digits = (
+	let rec loop init s start length = (
+		if length <= 0 then init else
+		let n = int_of_char s.[start] - int_of_char '0' in
+		loop (init * 10 + n) s (start + 1) (length - 1)
+	) in
+	loop 0
+);;
+
+let parse_3 (f: int -> int -> int -> char -> 'a) (bad: 'a) (ev: string): 'a = (
+	let length = String.length ev in
+	if length < 5 || ev.[0] <> '\x1b' || ev.[1] <> '[' then bad else
+	let p1s = 2 in
+	let p1e = take_digits ev p1s in
+	if p1e >= length then bad else
+	let p1v = if p1s = p1e then 1 else read_digits ev p1s (p1e - p1s) in
+	if ev.[p1e] <> ';' then bad else
+	let p2s = p1e + 1 in
+	let p2e = take_digits ev p2s in
+	if p2e >= length then bad else
+	let p2v = if p2s = p2e then 1 else read_digits ev p2s (p2e - p2s) in
+	if ev.[p2e] <> ';' then bad else
+	let p3s = p2e + 1 in
+	let p3e = take_digits ev p3s in
+	if p3e <> length - 1 then bad else
+	let p3v = if p3s = p3e then 1 else read_digits ev p3s (p3e - p3s) in
+	f p1v p2v p3v ev.[p3e]
+);;
+
 let is_resized ev = (
-	match ev with
-	| "\x1b[Sz" -> true
-	| _ -> false
+	let length = String.length ev in
+	length >= 6
+	&& ev.[0] = '\x1b'
+	&& ev.[1] = '['
+	&& ev.[2] = '8'
+	&& ev.[3] = ';'
+	&& ev.[length - 1] = 't'
+);;
+
+let size_of_event ev = (
+	assert (is_resized ev);
+	parse_3 (fun k h w t -> assert (k = 8 && t = 't'); (w, h)) (1, 1) ev
 );;
 
 type key = [
@@ -93,23 +138,7 @@ type key = [
 
 type shift_state = int;;
 
-let is_digit c = c >= '0' && c <= '9';;
-
-let rec take_digits s start = (
-	if String.length s <= start || not (is_digit s.[start]) then start else
-	take_digits s (start + 1)
-);;
-
-let read_digits = (
-	let rec loop init s start length = (
-		if length <= 0 then init else
-		let n = int_of_char s.[start] - int_of_char '0' in
-		loop (init * 10 + n) s (start + 1) (length - 1)
-	) in
-	loop 0
-);;
-
-let parse (f: int -> int -> char -> 'a) (bad: 'a) (ev: string): 'a = (
+let parse_key (f: int -> int -> char -> 'a) (bad: 'a) (ev: string): 'a = (
 	let length = String.length ev in
 	if length < 3 || ev.[0] <> '\x1b' then bad else
 	begin match ev.[1] with
@@ -144,9 +173,9 @@ let parse (f: int -> int -> char -> 'a) (bad: 'a) (ev: string): 'a = (
 	end
 );;
 
-let is_key = parse (fun _ _ _ -> true) false;;
+let is_key = parse_key (fun _ _ _ -> true) false;;
 
-let key_of_event = parse
+let key_of_event = parse_key
 	(fun k _ c ->
 		begin match k with
 		| 1 ->
@@ -254,7 +283,7 @@ let shift_of_event ev = (
 		let result = if m land 16 <> 0 then add control result else result in
 		result
 	) else (
-		parse (fun _ s _ -> s - 1) 0 ev
+		parse_key (fun _ s _ -> s - 1) 0 ev
 	)
 );;
 

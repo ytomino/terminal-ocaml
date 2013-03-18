@@ -59,6 +59,9 @@ val is_resized: event -> bool;;
     It install sigwinch handler (in POSIX) or change console mode (in Windows)
     when calling [size], [set_size], [view] or [screen]. *)
 
+val size_of_event: event -> int * int;;
+(** Return new window size of given event. *)
+
 type key = [
 	| `up
 	| `down

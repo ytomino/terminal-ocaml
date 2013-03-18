@@ -112,7 +112,8 @@ Terminal.Descr.mode Unix.stdin ~echo:false ~canonical:false ~mouse (fun () ->
 				let x, y = Terminal.position_of_event ev in
 				desc := !desc ^ "(" ^ string_of_int x ^ "," ^ string_of_int y ^ ")"
 			) else if Terminal.is_resized ev then (
-				desc := "resized"
+				let w, h = Terminal.size_of_event ev in
+				desc := "resized" ^ ":" ^ string_of_int w ^ "x" ^ string_of_int h
 			) else if Terminal.is_char ev then (
 				let c = Terminal.char_of_event ev in
 				desc := "'" ^ Char.escaped c ^ "'";
