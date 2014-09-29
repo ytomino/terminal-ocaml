@@ -5,6 +5,8 @@
 #include <caml/mlvalues.h>
 #include <caml/signals.h>
 #include <caml/unixsupport.h>
+
+#include <stdint.h>
 #include "caml/io.h"
 
 #include <stdbool.h>
