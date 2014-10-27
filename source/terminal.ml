@@ -358,8 +358,13 @@ module Descr = struct
 		if w < len then failwith("Terminal.Descr.output")
 	);;
 	
+	let output_substring fd s pos len = (
+		let w = Unix.write_substring fd s pos len in
+		if w < len then failwith("Terminal.Descr.output_substring")
+	);;
+	
 	let output_string fd s = (
-		output fd s 0 (String.length s)
+		output_substring fd s 0 (String.length s)
 	);;
 	
 	external output_utf8: file_descr -> string -> int -> int -> unit =
@@ -543,8 +548,7 @@ let input_line_utf8 ic = (
 			(* current line is continuing... *)
 			let buffered_length = buffered_in ic in
 			if buffered_length > 0 then (
-				let buffered_s = String.create buffered_length in
-				really_input ic buffered_s 0 buffered_length;
+				let buffered_s = really_input_string ic buffered_length in
 				let s1 = utf8_of_locale buffered_s in
 				let s2 = Descr.input_line_utf8 (Unix.descr_of_in_channel ic) in
 				s1 ^ s2
@@ -554,8 +558,7 @@ let input_line_utf8 ic = (
 		) else (
 			assert (buffered_line_length > 0);
 			let line_length = buffered_line_length - 1 in
-			let line_s = String.create line_length in
-			really_input ic line_s 0 line_length;
+			let line_s = really_input_string ic line_length in
 			let (_: char) = input_char ic in (* drop '\n' *)
 			utf8_of_locale line_s
 		)

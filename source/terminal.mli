@@ -180,10 +180,12 @@ module Descr: sig
 		(file_descr -> 'a) ->
 		'a;;
 	
-	val output: file_descr -> string -> int -> int -> unit;;
+	val output: file_descr -> bytes -> int -> int -> unit;;
 	(** Same as [Unix.write], but return type is unit. *)
+	val output_substring: file_descr -> string -> int -> int -> unit;;
+	(** Same as output but take a string instead of a bytes. *)
 	val output_string: file_descr -> string -> unit;;
-	(** Same as [output fd s 0 (String.length s)]. *)
+	(** Same as [output_substring fd s 0 (String.length s)]. *)
 	
 	val output_utf8: file_descr -> string -> int -> int -> unit;;
 	val output_string_utf8: file_descr -> string -> unit;;
@@ -200,7 +202,7 @@ module Descr: sig
 		(unit -> 'a) ->
 		'a;;
 	
-	val input: file_descr -> string -> int -> int -> int;;
+	val input: file_descr -> bytes -> int -> int -> int;;
 	(** Same as [Unix.read]. *)
 	
 	val input_line_utf8: file_descr -> string;;

@@ -7,7 +7,7 @@ Sys.catch_break true;;
 let mouse = true in
 Terminal.Descr.mode Unix.stdin ~echo:false ~canonical:false ~mouse (fun () ->
 	let write_string fd s =
-		let (_: int) = Unix.write fd s 0 (String.length s) in ()
+		let (_: int) = Unix.write_substring fd s 0 (String.length s) in ()
 	in
 	let playing = ref true in
 	let dx = ref 1 in

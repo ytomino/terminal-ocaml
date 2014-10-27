@@ -52,11 +52,11 @@ test-utf8io: $(BUILDDIR)/utf8io.byte.exe
 	$<
 
 $(BUILDDIR)/%.byte.exe: %.ml $(BUILDDIR)/terminal.cma
-	$(OCAMLC) -c -o $(BUILDDIR)/$(<:.ml=.cmo) -I $(BUILDDIR) $<
+	$(OCAMLC) -c -o $(BUILDDIR)/$(<:.ml=.cmo) -I $(BUILDDIR) $(OCAMLCFLAGS) $<
 	$(OCAMLC) -o $@ -I $(BUILDDIR) unix.cma $(BUILDDIR)/terminal.cma $(BUILDDIR)/$(<:.ml=.cmo)
 
 $(BUILDDIR)/%.opt.exe: %.ml $(BUILDDIR)/terminal.cmxa
-	$(OCAMLOPT) -c -o $(BUILDDIR)/$(<:.ml=.cmx) -I $(BUILDDIR) $<
+	$(OCAMLOPT) -c -o $(BUILDDIR)/$(<:.ml=.cmx) -I $(BUILDDIR) $(OCAMLCFLAGS) $<
 	$(OCAMLOPT) -o $@ -I $(BUILDDIR) unix.cmxa $(BUILDDIR)/terminal.cmxa $(BUILDDIR)/$(<:.ml=.cmx)
 
 interactive: $(BUILDDIR)/terminal.cma
