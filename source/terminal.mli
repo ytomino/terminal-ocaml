@@ -187,7 +187,7 @@ module Descr: sig
 	val output_string: file_descr -> string -> unit;;
 	(** Same as [output_substring fd s 0 (String.length s)]. *)
 	
-	val output_utf8: file_descr -> string -> int -> int -> unit;;
+	val output_substring_utf8: file_descr -> string -> int -> int -> unit;;
 	val output_string_utf8: file_descr -> string -> unit;;
 	
 	val output_newline: file_descr -> unit -> unit;;
@@ -293,7 +293,7 @@ val screen:
     If [~cursor] is given, same as [show_cursor oc cursor].
     If [~wrap:w] is given, same as [wrap oc w]. *)
 
-val output_utf8: out_channel -> string -> int -> int -> unit;;
+val output_substring_utf8: out_channel -> string -> int -> int -> unit;;
 (** Write a part of a UTF-8 encoded string to the given output channel.
     In POSIX, It's same as [Pervasives.output]. *)
 val output_string_utf8: out_channel -> string -> unit;;

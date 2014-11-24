@@ -906,7 +906,7 @@ CAMLprim value mlterminal_d_screen(
 	CAMLreturn(result);
 }
 
-CAMLprim value mlterminal_d_output_utf8(
+CAMLprim value mlterminal_d_output_substring_utf8(
 	value out,
 	value s,
 	value pos,

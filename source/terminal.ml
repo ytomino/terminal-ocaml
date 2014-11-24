@@ -367,10 +367,10 @@ module Descr = struct
 		output_substring fd s 0 (String.length s)
 	);;
 	
-	external output_utf8: file_descr -> string -> int -> int -> unit =
-		"mlterminal_d_output_utf8";;
+	external output_substring_utf8: file_descr -> string -> int -> int -> unit =
+		"mlterminal_d_output_substring_utf8";;
 	let output_string_utf8 f s =
-		output_utf8 f s 0 (String.length s);;
+		output_substring_utf8 f s 0 (String.length s);;
 	
 	external output_newline: file_descr -> unit -> unit =
 		"mlterminal_d_output_newline";;
@@ -509,13 +509,13 @@ let screen out ?size ?cursor ?wrap f = (
 			result)
 );;
 
-let output_utf8 out s pos len = (
+let output_substring_utf8 out s pos len = (
 	flush out;
-	Descr.output_utf8 (Unix.descr_of_out_channel out) s pos len
+	Descr.output_substring_utf8 (Unix.descr_of_out_channel out) s pos len
 );;
 
 let output_string_utf8 out s = (
-	output_utf8 out s 0 (String.length s)
+	output_substring_utf8 out s 0 (String.length s)
 );;
 
 let is_terminal_in = compose Descr.is_terminal Unix.descr_of_in_channel;;
