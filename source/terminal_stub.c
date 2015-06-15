@@ -669,16 +669,22 @@ CAMLprim value mlterminal_d_color(
 		if(i > 2) buf[i++] = ';';
 		value fg = Field(foreground, 0);
 		if(!mem_intensity(fg)){
-			buf[i++] = '2';
-			buf[i++] = ';';
+			buf[i++] = '3';
+		}else{
+			buf[i++] = '9';
 		}
-		buf[i++] = '3';
 		buf[i++] = '0' + code_of_color(fg);
 	}
 	if(Is_block(background)){
 		if(i > 2) buf[i++] = ';';
-		buf[i++] = '4';
-		buf[i++] = '0' + code_of_color(Field(background, 0));
+		value bg = Field(background, 0);
+		if(!mem_intensity(bg)){
+			buf[i++] = '4';
+		}else{
+			buf[i++] = '1';
+			buf[i++] = '0';
+		}
+		buf[i++] = '0' + code_of_color(bg);
 	}
 	if(i > 2){
 		buf[i++] = 'm';
