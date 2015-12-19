@@ -63,7 +63,7 @@ interactive: $(BUILDDIR)/terminal.cma
 	$(RLWRAP) ocaml -I $(BUILDDIR) unix.cma terminal.cma
 
 $(BUILDDIR)/terminal.cma $(BUILDDIR)/terminal.cmxa: $(wildcard ../source/terminal*)
-	make -C ../source -f makefile install DESTDIR=$(abspath $(BUILDDIR))
+	make -C ../source install DESTDIR=$(abspath $(BUILDDIR))
 
 man: ../source/terminal.mli
 	-mkdir $(TMPDIR)/man3
