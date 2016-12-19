@@ -5,6 +5,7 @@
 val title: string -> (unit -> 'a) -> 'a
 (** [title t f] saves old window title,
     sets it to given local encoded string [t], and restores it. *)
+
 val title_utf8: string -> (unit -> 'a) -> 'a
 (** [title_utf8 t f] saves old window title,
     sets it to given UTF-8 encoded string [t], and restores it.
@@ -46,11 +47,13 @@ val escape_sequence_of_event: event -> string
 
 val is_char: event -> bool
 (** Check whether given event contains a char or not. *)
+
 val char_of_event: event -> char
 (** Retrun a char of given event. *)
 
 val is_string: event -> bool
 (** Check whether given event contains a string(non-escape sequence) or not. *)
+
 val string_of_event: event -> string
 (** Retrun a string of given event. *)
 
@@ -92,8 +95,10 @@ type shift_state = private int
 
 val is_key: event -> bool
 (** Check whether given event contains a key or not. *)
+
 val key_of_event: event -> [key | `unknown]
 (** Retrun a key of given event. *)
+
 val shift_of_event: event -> shift_state
 (** Retrun shift state of given event.
     [shift_of_event] works for key event and also mouse clicked event.
@@ -112,6 +117,7 @@ val alt: shift_key
 
 val mem: shift_key -> shift_state -> bool
 (** [mem a s] is true if [a] is included in [s]. *)
+
 external add: shift_key -> shift_state -> shift_state = "%orint"
 (** [add a s] returns a set containing all elements of [s] and [a]. *)
 
@@ -126,8 +132,10 @@ type button = [
 
 val is_clicked: event -> bool
 (** Check whether given event means a mouse button is clicked. *)
+
 val button_of_event: event -> [button | `unknown]
 (** Return a clicked mouse button of given event. *)
+
 val position_of_event: event -> int * int
 (** Retrun mouse position of given event. *)
 
@@ -182,8 +190,10 @@ module Descr: sig
 	
 	val output: file_descr -> bytes -> int -> int -> unit
 	(** Same as [Unix.write], but return type is unit. *)
+	
 	val output_substring: file_descr -> string -> int -> int -> unit
 	(** Same as output but take a string instead of a bytes. *)
+	
 	val output_string: file_descr -> string -> unit
 	(** Same as [output_substring fd s 0 (String.length s)]. *)
 	
@@ -229,6 +239,7 @@ val is_terminal_out: out_channel -> bool
 
 val size: out_channel -> int * int
 (** [size oc] gets size of current screen buffer. *)
+
 val set_size: out_channel -> int -> int -> unit
 (** [set_size oc width height] sets size of current screen buffer. *)
 
@@ -238,11 +249,14 @@ val view: out_channel -> int * int * int * int
 
 val position: out_channel -> int * int
 (** [position oc] gets the cursor position in absolute coordinates. *)
+
 val set_position: out_channel -> int -> int -> unit
 (** [set_position oc x y] moves the cursor in absolute coordinates. *)
+
 val move: out_channel -> int -> int -> unit
 (** [move oc x y] moves the cursor in relative coordinates
     from current position. *)
+
 val move_to_bol: out_channel -> unit -> unit
 (** [move_to_bol oc ()] moves the cursor to the begin of line. *)
 
@@ -266,8 +280,10 @@ val save: out_channel -> (unit -> 'a) -> 'a
 
 val clear_screen: out_channel -> unit -> unit
 (** [clear_screen oc ()] clears all of given screen buffer. *)
+
 val clear_eol: out_channel -> unit -> unit
 (** [clear_eol oc ()] clears from the cursor position to the end of line. *)
+
 val clear_line: out_channel -> unit -> unit
 (** [clear_line oc ()] is a shorthand of [move_to_bol oc ()]
     and then [clear_eol oc ()]. *)
@@ -277,6 +293,7 @@ val scroll: out_channel -> int -> unit
 
 val show_cursor: out_channel -> bool -> unit
 (** [show_cursor oc flag] show or hide the cursor. *)
+
 val wrap: out_channel -> bool -> unit
 (** [wrap oc flag] enables or disables line wrapping. *)
 
@@ -296,6 +313,7 @@ val screen:
 val output_substring_utf8: out_channel -> string -> int -> int -> unit
 (** Write a part of a UTF-8 encoded string to the given output channel.
     In POSIX, It's same as [Pervasives.output]. *)
+
 val output_string_utf8: out_channel -> string -> unit
 (** Write a UTF-8 encoded string to the given output channel.
     In POSIX, It's same as [Pervasives.output_string]. *)
@@ -344,6 +362,7 @@ val input_line_utf8: in_channel -> string
 val utf8_of_locale: string -> string
 (** In windows, encode string from active code page to UTF-8.
     In POSIX, It's no effect. *)
+
 val locale_of_utf8: string -> string
 (** In windows, encode string from UTF-8 to active code page.
     In POSIX, It's no effect. *)
