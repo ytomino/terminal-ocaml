@@ -564,6 +564,3 @@ let input_line_utf8 ic = (
 		)
 	)
 );;
-
-external sleep: float -> unit =
-	"mlterminal_sleep";;

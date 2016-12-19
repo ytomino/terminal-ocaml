@@ -246,7 +246,7 @@ let repeat (n: int) (s: string) = (
 	Buffer.contents r
 );;
 
-let wait (n: int) = Terminal.sleep (float_of_int n /. 1000.0);;
+let wait (n: int) = Unix.sleepf (float_of_int n /. 1000.0);;
 
 let beep (n: int) = ();; (* dummy *)
 

@@ -1631,24 +1631,3 @@ CAMLprim value mlterminal_locale_of_utf8(value s)
 #endif
 	CAMLreturn(result);
 }
-
-CAMLprim value mlterminal_sleep(value seconds)
-{
-	CAMLparam1(seconds);
-	double s = Double_val(seconds);
-	caml_enter_blocking_section();
-#ifdef __WINNT__
-	Sleep((DWORD)(s * 1.0e3)); /* milliseconds */
-#else
-	double int_s = trunc(s);
-	struct timespec rqt, rmt;
-	rqt.tv_sec = (time_t)int_s;
-	rqt.tv_nsec = (s - int_s) * 1.0e9; /* nanoseconds */
-	for(;;){
-		if(nanosleep(&rqt, &rmt) == 0) break;
-		rqt = rmt;
-	}
-#endif
-	caml_leave_blocking_section();
-	CAMLreturn(Val_unit);
-}

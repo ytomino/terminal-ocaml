@@ -366,6 +366,3 @@ val utf8_of_locale: string -> string
 val locale_of_utf8: string -> string
 (** In windows, encode string from UTF-8 to active code page.
     In POSIX, It's no effect. *)
-
-val sleep: float -> unit
-(** [float] version of [Unix.sleep]. *)
