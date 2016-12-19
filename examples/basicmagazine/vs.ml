@@ -282,7 +282,7 @@ let rec run (stdout, stdin: Unix.file_descr * Unix.file_descr): unit = (
 		if wait || not (Terminal.Descr.is_empty stdin) then (
 			let ev = Terminal.Descr.input_event stdin in
 			if Terminal.is_string ev then (
-				Queue.add (String.uppercase (Terminal.string_of_event ev)) inkey;
+				Queue.add (String.uppercase_ascii (Terminal.string_of_event ev)) inkey;
 				do_events false
 			) else (
 				do_events wait
