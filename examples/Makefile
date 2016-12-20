@@ -4,10 +4,10 @@ TARGET=$(HOST)
 
 ifneq ($(HOST),$(TARGET))
 PROGRAMPREFIX=$(TARGET)-
-DIRSUFFIX=-$(TARGET)
+BINLN=
 else
 PROGRAMPREFIX=
-DIRSUFFIX=
+BINLN=bin
 ifneq ($(shell rlwrap --version),)
 RLWRAP=rlwrap
 endif
@@ -16,7 +16,15 @@ endif
 OCAMLC=$(PROGRAMPREFIX)ocamlc
 OCAMLOPT=$(PROGRAMPREFIX)ocamlopt
 
-BUILDDIR=build$(DIRSUFFIX)
+ifneq ($(ComSpec),)
+LINK=linkd $2 $1
+UNLINK=linkd $1 /d
+else
+LINK=ln -s $1 $2
+UNLINK=rm $1
+endif
+
+BUILDDIR=$(TARGET).build
 
 export CAML_LD_LIBRARY_PATH=$(BUILDDIR)/stublibs
 
@@ -25,9 +33,9 @@ ITEMS=$(basename $(wildcard *.ml))
 .PHONY: all all-byte all-opt interactive man clean $(addprefix test-,$(ITEMS))
 
 ifneq ($(HOST),$(TARGET))
-all: all-opt
+all: all-opt $(BINLN)
 else
-all: all-byte all-opt
+all: all-byte all-opt $(BINLN)
 endif
 
 all-byte: $(addprefix $(BUILDDIR)/,$(addsuffix .byte.exe,$(ITEMS)))
@@ -62,7 +70,7 @@ $(BUILDDIR)/%.opt.exe: %.ml $(BUILDDIR)/terminal.cmxa
 interactive: $(BUILDDIR)/terminal.cma
 	$(RLWRAP) ocaml -I $(BUILDDIR) unix.cma terminal.cma
 
-$(BUILDDIR)/terminal.cma $(BUILDDIR)/terminal.cmxa: $(wildcard ../source/terminal*)
+$(BUILDDIR) $(BUILDDIR)/terminal.cma $(BUILDDIR)/terminal.cmxa: $(wildcard ../source/terminal*)
 	make -C ../source install DESTDIR=$(abspath $(BUILDDIR))
 
 man: ../source/terminal.mli
@@ -70,6 +78,10 @@ man: ../source/terminal.mli
 	ocamldoc -man -man-mini -d $(TMPDIR)/man3 $<
 	MANPATH=$(TMPDIR) man Terminal
 
+$(BINLN): | $(BUILDDIR)
+	-$(call LINK,$(BUILDDIR),$(BINLN))
+
 clean:
 	make -C ../source clean
+	-$(call UNLINK,$(BINLN))
 	-rm -rf $(BUILDDIR)

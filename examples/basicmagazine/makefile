@@ -1,4 +1,7 @@
-BUILDDIR=../build
+HOST=$(shell gcc -dumpmachine)
+TARGET=$(HOST)
+
+BUILDDIR=../$(TARGET).build
 
 OCAMLOPT=$(PROGRAMPREFIX)ocamlopt
 
