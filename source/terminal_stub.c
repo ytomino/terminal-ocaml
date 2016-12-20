@@ -6,8 +6,9 @@
 #include <caml/signals.h>
 #include <caml/unixsupport.h>
 
-#include <stdint.h>
+#define CAML_INTERNALS
 #include "caml/io.h"
+#undef CAML_INTERNALS
 
 #include <stdbool.h>
 #include <string.h>
