@@ -1,4 +1,4 @@
-HOST=$(shell gcc -dumpmachine)
+HOST:=$(shell gcc -dumpmachine)
 TARGET=$(HOST)
 
 ifneq ($(ComSpec),)
@@ -49,7 +49,7 @@ OCAMLMKLIB=$(OCAMLC:c=mklib)
 ifneq ($(OCAMLLIB),)
 OCAMLLIBDIR=$(OCAMLLIB)
 else
-OCAMLLIBDIR=$(shell $(OCAMLC) -where)
+OCAMLLIBDIR:=$(shell $(OCAMLC) -where)
 endif
 
 DESTDIR=$(OCAMLLIBDIR)
