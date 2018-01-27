@@ -180,6 +180,20 @@ static value vk_f12[SS_MAX];
 #include <sys/ioctl.h>
 #include <sys/select.h>
 
+#if defined(__gnu_linux__)
+
+static void *reallocf(void *ptr, size_t size)
+{
+	void *result;
+	result = realloc(ptr, size);
+	if(result == NULL && size > 0){
+		free(ptr);
+	}
+	return result;
+}
+
+#endif
+
 #undef stdin
 #undef stdout
 #undef stderr
@@ -223,22 +237,40 @@ static void set_restart_on_sigwinch(bool restart)
 	sigaction(SIGWINCH, &sa, NULL);
 }
 
-void get_size(int fd, struct ttysize *win)
+void get_size(int fd, int *width, int *height)
 {
 	/* Have it to write (fd, "\x1b[18t", 5); and receive "\x1b[8;W;Ht" ? */
-	if(ioctl(fd, TIOCGSIZE, win) < 0){
+	bool failed;
+#if defined(__gnu_linux__)
+	struct winsize win;
+	failed = ioctl(fd, TIOCGWINSZ, &win) < 0;
+#else
+	struct ttysize win;
+	failed = ioctl(fd, TIOCGSIZE, win) < 0;
+#endif
+	if(failed){
 		failwith("mlterminal(ioctl, failed to get size)");
 	}
+#if defined(__gnu_linux__)
+	*width = win.ws_col;
+	*height = win.ws_row;
+#else
+	*width = win.ts_cols;
+	*height = win.ts_lines;
+#endif
 }
 
-void set_size(int fd, struct ttysize const *win)
+void set_size(int fd, int width, int height)
 {
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(__gnu_linux__)
 	char buf[256];
 	int len;
-	len = snprintf(buf, 256, "\x1b[8;%d;%dt", win->ts_lines, win->ts_cols);
+	len = snprintf(buf, 256, "\x1b[8;%d;%dt", height, width);
 	write(fd, buf, len); /* for Terminal.app, also xterm can accept this */
 #else
+	struct ttysize win;
+	win.ts_cols = width;
+	win.ts_lines = height;
 	if(ioctl(fd, TIOCSSIZE, win) < 0){
 		failwith("mlterminal(ioctl, failed to set size)");
 	}
@@ -413,10 +445,7 @@ CAMLprim value mlterminal_d_size(value out)
 	h = info.dwSize.Y;
 #else
 	install_sigwinch();
-	struct ttysize win;
-	get_size(f, &win);
-	w = win.ts_cols;
-	h = win.ts_lines;
+	get_size(f, &w, &h);
 #endif
 	result = caml_alloc_tuple(2);
 	Field(result, 0) = Val_int(w);
@@ -428,17 +457,15 @@ CAMLprim value mlterminal_d_set_size(value out, value w, value h)
 {
 	CAMLparam3(out, w, h);
 	handle_t f = handle_of_descr(out);
+	int new_w, new_h;
+	new_w = Int_val(w);
+	new_h = Int_val(h);
 #ifdef __WINNT__
 	install_window_input();
-	int new_w = Int_val(w);
-	int new_h = Int_val(h);
 	set_size(f, new_w, new_h, f);
 #else
 	install_sigwinch();
-	struct ttysize win;
-	win.ts_cols = Int_val(w);
-	win.ts_lines = Int_val(h);
-	set_size(f, &win);
+	set_size(f, new_w, new_h);
 #endif
 	CAMLreturn(Val_unit);
 }
@@ -459,12 +486,12 @@ CAMLprim value mlterminal_d_view(value out)
 	bottom = info.srWindow.Bottom;
 #else
 	install_sigwinch();
-	struct ttysize win;
-	get_size(f, &win);
+	int w, h;
+	get_size(f, &w, &h);
 	left = 0;
 	top = 0;
-	right = win.ts_cols - 1;
-	bottom = win.ts_lines - 1;
+	right = w - 1;
+	bottom = h - 1;
 #endif
 	result = caml_alloc_tuple(2);
 	Field(result, 0) = Val_int(left);
@@ -796,9 +823,9 @@ CAMLprim value mlterminal_d_scroll(value out, value y)
 	if(off_y > 0){
 #if defined(__APPLE__) && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1070
 		int i;
-		struct ttysize win;
-		get_size(f, &win);
-		len = snprintf(buf, 256, "\x1b[%d;0H", win.ts_lines);
+		int w, h;
+		get_size(f, &w, &h);
+		len = snprintf(buf, 256, "\x1b[%d;0H", h);
 		write(f, buf, len);
 		for(i = 0; i < off_y; ++i){
 			write(f, "\x1b" "D", 2);
@@ -878,15 +905,15 @@ CAMLprim value mlterminal_d_screen(
 	bool pred_cursor_visible = current_cursor_visible;
 	bool pred_wrap = current_wrap;
 	write(f, "\x1b""7\x1b[?47h", 8); /* enter_ca_mode */
-	struct ttysize old_win;
+	int old_w, old_h;
 	if(Is_block(size)){
 		install_sigwinch();
-		struct ttysize win;
 		value s = Field(size, 0);
-		get_size(f, &old_win);
-		win.ts_cols = Int_val(Field(s, 0));
-		win.ts_lines = Int_val(Field(s, 1));
-		set_size(f, &win);
+		get_size(f, &old_w, &old_h);
+		int new_w, new_h;
+		new_w = Int_val(Field(s, 0));
+		new_h = Int_val(Field(s, 1));
+		set_size(f, new_w, new_h);
 	}
 	if(Is_block(cursor)){
 		set_cursor_visible(f, Bool_val(Field(cursor, 0)));
@@ -903,7 +930,7 @@ CAMLprim value mlterminal_d_screen(
 		set_cursor_visible(f, pred_cursor_visible);
 	}
 	if(Is_block(size)){
-		set_size(f, &old_win);
+		set_size(f, old_w, old_h);
 	}
 	write(f, "\x1b""[2J\x1b[?47l\x1b""8", 12); /* exit_ca_mode */
 #endif
@@ -1520,9 +1547,9 @@ resized:
 		failwith("mlterminal_d_input_event"
 			"(stdout is not associated to terminal)");
 	}
-	struct ttysize win;
-	get_size(stdout, &win);
-	snprintf(buf, sizeof(buf), "\x1b[8;%d;%dt", win.ts_lines, win.ts_cols);
+	int w, h;
+	get_size(stdout, &w, &h);
+	snprintf(buf, sizeof(buf), "\x1b[8;%d;%dt", h, w);
 	result = caml_copy_string(buf);
 done:
 #endif

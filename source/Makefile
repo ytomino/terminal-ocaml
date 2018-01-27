@@ -37,6 +37,9 @@ LD=$(PROGRAMPREFIX)ld -bundle -flat_namespace -undefined suppress /usr/lib/bundl
 else
 LD=$(PROGRAMPREFIX)ld -shared
 endif
+ifneq ($(findstring bsd,$(TARGET))$(findstring linux,$(TARGET)),)
+DLLCFLAGS=-fPIC
+endif
 DEFAULTLIB=$(1)
 endif
 
@@ -101,7 +104,7 @@ $(BUILDDIR)/%.cmx: %.ml
 	$(OCAMLOPT) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -o $@ $<
 
 $(BUILDDIR)/%.o: %.c
-	$(GCC) -c -isystem "$(OCAMLLIBDIR)" $(CFLAGS) -o $@ $<
+	$(GCC) -c -isystem "$(OCAMLLIBDIR)" $(CFLAGS) $(DLLCFLAGS) -o $@ $<
 
 ifeq ($(STUBLIBNAME),)
 $(BUILDDIR)/$(LIBNAME).cma: $(MLCMI) $(MLCMO)
