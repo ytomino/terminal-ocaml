@@ -237,7 +237,7 @@ static void set_restart_on_sigwinch(bool restart)
 	sigaction(SIGWINCH, &sa, NULL);
 }
 
-void get_size(int fd, int *width, int *height)
+static void get_size(int fd, int *width, int *height)
 {
 	/* Have it to write (fd, "\x1b[18t", 5); and receive "\x1b[8;W;Ht" ? */
 	bool failed;
@@ -260,7 +260,7 @@ void get_size(int fd, int *width, int *height)
 #endif
 }
 
-void set_size(int fd, int width, int height)
+static void set_size(int fd, int width, int height)
 {
 #if defined(__APPLE__) || defined(__gnu_linux__)
 	char buf[256];
