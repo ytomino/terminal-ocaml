@@ -532,9 +532,8 @@ CAMLprim value mlterminal_d_position(value out)
 				++i;
 			}
 		}else{
-			char c = buf[i];
+			if(i >= 255 || buf[i] == 'R') break;
 			++i;
-			if(c == 'R') break;
 		}
 	}
 	tcsetattr(stdin, TCSANOW, &old_settings);
