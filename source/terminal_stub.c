@@ -538,7 +538,7 @@ CAMLprim value mlterminal_d_position(value out)
 		}
 	}
 	tcsetattr(stdin, TCSANOW, &old_settings);
-	if(sscanf(buf, "\x1b[%d;%dR", &x, &y) != 2){
+	if(sscanf(buf, "\x1b[%d;%dR", &y, &x) != 2){
 		failwith("mlterminal_d_position");
 	}
 	--x;
