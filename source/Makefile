@@ -70,7 +70,7 @@ LIBNAME=terminal
 STUBLIBNAME=ml$(LIBNAME)
 
 OCAMLCFLAGS=-w +a
-CFLAGS=-O2 -W -Wall
+CFLAGS=-O2 -Wall -Wextra -Wno-unused-result
 
 OCAMLMKLIBFLAGS=
 CCLIB=
