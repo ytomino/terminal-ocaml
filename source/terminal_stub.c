@@ -241,7 +241,7 @@ static void get_size(int fd, int *width, int *height)
 {
 	/* Have it to write (fd, "\x1b[18t", 5); and receive "\x1b[8;W;Ht" ? */
 	bool failed;
-#if defined(__gnu_linux__)
+#if defined(__APPLE__) || defined(__gnu_linux__)
 	struct winsize win;
 	failed = ioctl(fd, TIOCGWINSZ, &win) < 0;
 #else
@@ -251,7 +251,7 @@ static void get_size(int fd, int *width, int *height)
 	if(failed){
 		failwith("mlterminal(ioctl, failed to get size)");
 	}
-#if defined(__gnu_linux__)
+#if defined(__APPLE__) || defined(__gnu_linux__)
 	*width = win.ws_col;
 	*height = win.ws_row;
 #else
