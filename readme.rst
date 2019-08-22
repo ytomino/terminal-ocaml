@@ -20,7 +20,6 @@ Install
 Specify your preferred directory to ``PREFIX``.
 The libraries would be installed into ``$PREFIX/lib/ocaml`` (default is
 ``ocamlc -where``).
-And set ``$PREFIX/lib/ocaml/stublibs`` to ``CAML_LD_LIBRARY_PATH``.
 
 Uninstall
 +++++++++

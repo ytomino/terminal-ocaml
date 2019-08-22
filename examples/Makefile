@@ -30,8 +30,6 @@ endif
 
 BUILDDIR=$(TARGET).build
 
-export CAML_LD_LIBRARY_PATH=$(BUILDDIR)/stublibs
-
 ITEMS=$(basename $(wildcard *.ml))
 
 .PHONY: all all-byte all-opt interactive man clean $(addprefix test-,$(ITEMS))
