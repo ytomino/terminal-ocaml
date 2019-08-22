@@ -140,7 +140,7 @@ clean:
 	-$(call RM,$(BUILDDIR)/dll$(STUBLIBNAME)$(DLLSUFFIX))
 	-$(call RM,$(BUILDDIR)/lib$(STUBLIBNAME).a)
 	-$(foreach i,$(COBJ) $(MLCMI) $(MLCMO) $(MLCMX) $(MLOBJ),$(call RM,$(i)) $(CMDSEP)) $(NOP)
-ifeq ($(BUILDDIR),build)
+ifeq ($(BUILDDIR),$(TARGET).build)
 	-$(call RMDIR,$(BUILDDIR))
 endif
 
