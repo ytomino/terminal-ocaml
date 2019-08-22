@@ -36,9 +36,9 @@ ifneq ($(findstring darwin,$(TARGET)),)
 LD=$(PROGRAMPREFIX)ld -bundle -flat_namespace -undefined suppress /usr/lib/bundle1.o
 else
 LD=$(PROGRAMPREFIX)ld -shared
-endif
 ifneq ($(findstring bsd,$(TARGET))$(findstring linux,$(TARGET)),)
 DLLCFLAGS=-fPIC
+endif
 endif
 DEFAULTLIB=$(1)
 endif
