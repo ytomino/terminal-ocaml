@@ -17,11 +17,15 @@ OCAMLC=$(PROGRAMPREFIX)ocamlc
 OCAMLOPT=$(PROGRAMPREFIX)ocamlopt
 
 ifneq ($(ComSpec),)
+RM=del
 LINK=linkd $2 $1
 UNLINK=linkd $1 /d
+DIRSEP=\$(empty)
 else
+RM=rm
 LINK=ln -s $1 $2
 UNLINK=rm $1
+DIRSEP=/
 endif
 
 BUILDDIR=$(TARGET).build
@@ -71,7 +75,7 @@ interactive: $(BUILDDIR)/terminal.cma
 	$(RLWRAP) ocaml -I $(BUILDDIR) unix.cma terminal.cma
 
 $(BUILDDIR) $(BUILDDIR)/terminal.cma $(BUILDDIR)/terminal.cmxa: $(wildcard ../source/terminal*)
-	make -C ../source install DESTDIR=$(abspath $(BUILDDIR))
+	make -C ../source install INSTALLDIR=$(abspath $(BUILDDIR))
 
 man: ../source/terminal.mli
 	-mkdir $(TMPDIR)/man3
@@ -82,6 +86,8 @@ $(BINLN): | $(BUILDDIR)
 	-$(call LINK,$(BUILDDIR),$(BINLN))
 
 clean:
-	make -C ../source clean
+	-make -C ../source clean uninstall INSTALLDIR=$(abspath $(BUILDDIR))
+	-$(RM) $(BUILDDIR)$(DIRSEP)*.exe $(BUILDDIR)$(DIRSEP)*.cm? $(BUILDDIR)$(DIRSEP)*.o
 	-$(call UNLINK,$(BINLN))
-	-rm -rf $(BUILDDIR)
+	-rmdir $(BUILDDIR)$(DIRSEP)stublibs
+	-rmdir $(BUILDDIR)

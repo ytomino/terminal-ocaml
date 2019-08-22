@@ -15,17 +15,19 @@ Install
 
 ::
 
- make install DESTDIR=`ocamlc -where`
+ make install PREFIX=/usr/local
 
-Or use your preferred directory for DESTDIR.
-In this case, set DESTDIR/stublibs to CAML_LD_LIBRARY_PATH.
+Specify your preferred directory to ``PREFIX``.
+The libraries would be installed into ``$PREFIX/lib/ocaml`` (default is
+``ocamlc -where``).
+And set ``$PREFIX/lib/ocaml/stublibs`` to ``CAML_LD_LIBRARY_PATH``.
 
 Uninstall
 +++++++++
 
 ::
 
- make uninstall DESTDIR=`ocamlc -where`
+ make uninstall PREFIX=/usr/local
 
 Build examples
 ++++++++++++++

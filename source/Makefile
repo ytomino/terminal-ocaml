@@ -15,7 +15,7 @@ DIRSEP=/
 CMDSEP=;
 RM=rm $(1)
 CP=cp $(1) $(2)
-MKDIR=mkdir $(1)
+MKDIR=mkdir -p $(1)
 RMDIR=rmdir $(1)
 NOP=echo > /dev/null
 endif
@@ -49,13 +49,12 @@ OCAMLC=$(PROGRAMPREFIX)ocamlc
 OCAMLOPT=$(OCAMLC:c=opt)
 OCAMLMKLIB=$(OCAMLC:c=mklib)
 
-ifneq ($(OCAMLLIB),)
-OCAMLLIBDIR=$(OCAMLLIB)
-else
 OCAMLLIBDIR:=$(shell $(OCAMLC) -where)
-endif
 
-DESTDIR=$(OCAMLLIBDIR)
+PREFIX=$(abspath $(OCAMLLIBDIR)/../..)
+DESTDIR=
+INSTALLDIR=$(addsuffix /,$(DESTDIR))$(PREFIX)/lib/ocaml
+
 BUILDDIR=$(TARGET).build
 
 all:
@@ -145,33 +144,33 @@ ifeq ($(BUILDDIR),$(TARGET).build)
 endif
 
 install: all
-	-$(call MKDIR,$(DESTDIR))
-	$(foreach i,$(MLCMI),$(call CP,$(i),$(DESTDIR)) $(CMDSEP)) $(NOP)
-	$(call CP,$(BUILDDIR)/$(LIBNAME).cma,$(DESTDIR))
+	-$(call MKDIR,$(INSTALLDIR))
+	$(foreach i,$(MLCMI),$(call CP,$(i),$(INSTALLDIR)) $(CMDSEP)) $(NOP)
+	$(call CP,$(BUILDDIR)/$(LIBNAME).cma,$(INSTALLDIR))
 ifneq ($(STUBLIBNAME),)
-	-$(call MKDIR,$(DESTDIR)/stublibs)
-	$(call CP,$(BUILDDIR)/dll$(STUBLIBNAME)$(DLLSUFFIX),$(DESTDIR)/stublibs)
+	-$(call MKDIR,$(INSTALLDIR)/stublibs)
+	$(call CP,$(BUILDDIR)/dll$(STUBLIBNAME)$(DLLSUFFIX),$(INSTALLDIR)/stublibs)
 endif
 ifneq ($(OCAMLOPT),)
-	$(foreach i,$(MLCMX),$(call CP,$(i),$(DESTDIR)) $(CMDSEP)) $(NOP)
-	$(call CP,$(BUILDDIR)/$(LIBNAME).a,$(DESTDIR))
-	$(call CP,$(BUILDDIR)/$(LIBNAME).cmxa,$(DESTDIR))
+	$(foreach i,$(MLCMX),$(call CP,$(i),$(INSTALLDIR)) $(CMDSEP)) $(NOP)
+	$(call CP,$(BUILDDIR)/$(LIBNAME).a,$(INSTALLDIR))
+	$(call CP,$(BUILDDIR)/$(LIBNAME).cmxa,$(INSTALLDIR))
 ifneq ($(STUBLIBNAME),)
-	$(call CP,$(BUILDDIR)/lib$(STUBLIBNAME).a,$(DESTDIR))
+	$(call CP,$(BUILDDIR)/lib$(STUBLIBNAME).a,$(INSTALLDIR))
 endif
 endif
 
 uninstall:
-	-$(foreach i,$(MLCMI),$(call RM,$(DESTDIR)/$(notdir $(i))) $(CMDSEP)) $(NOP)
-	-$(call RM,$(DESTDIR)/$(LIBNAME).cma)
+	-$(foreach i,$(MLCMI),$(call RM,$(INSTALLDIR)/$(notdir $(i))) $(CMDSEP)) $(NOP)
+	-$(call RM,$(INSTALLDIR)/$(LIBNAME).cma)
 ifneq ($(STUBLIBNAME),)
-	-$(call RM,$(DESTDIR)/stublibs/dll$(STUBLIBNAME)$(DLLSUFFIX))
+	-$(call RM,$(INSTALLDIR)/stublibs/dll$(STUBLIBNAME)$(DLLSUFFIX))
 endif
 ifneq ($(OCAMLOPT),)
-	-$(foreach i,$(MLCMX),$(call RM,$(DESTDIR)/$(notdir $(i))) $(CMDSEP)) $(NOP)
-	-$(call RM,$(DESTDIR)/$(LIBNAME).a)
-	-$(call RM,$(DESTDIR)/$(LIBNAME).cmxa)
+	-$(foreach i,$(MLCMX),$(call RM,$(INSTALLDIR)/$(notdir $(i))) $(CMDSEP)) $(NOP)
+	-$(call RM,$(INSTALLDIR)/$(LIBNAME).a)
+	-$(call RM,$(INSTALLDIR)/$(LIBNAME).cmxa)
 ifneq ($(STUBLIBNAME),)
-	-$(call RM,$(DESTDIR)/lib$(STUBLIBNAME).a)
+	-$(call RM,$(INSTALLDIR)/lib$(STUBLIBNAME).a)
 endif
 endif
