@@ -16,4 +16,4 @@ $(BUILDDIR)/%.opt.exe: %.ml $(BUILDDIR)/terminal.cmxa
 	$(OCAMLOPT) -o $@ -I $(BUILDDIR) unix.cmxa $(BUILDDIR)/terminal.cmxa $(BUILDDIR)/$(<:.ml=.cmx)
 
 $(BUILDDIR)/terminal.cmxa:
-	make -C .. $(patsubst ../%,%,$@)
+	$(MAKE) -C .. $(patsubst ../%,%,$@)

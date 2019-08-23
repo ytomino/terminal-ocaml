@@ -73,7 +73,7 @@ interactive: $(BUILDDIR)/terminal.cma
 	$(RLWRAP) ocaml -I $(BUILDDIR) unix.cma terminal.cma
 
 $(BUILDDIR) $(BUILDDIR)/terminal.cma $(BUILDDIR)/terminal.cmxa: $(wildcard ../source/terminal*)
-	make -C ../source install INSTALLDIR=$(abspath $(BUILDDIR))
+	$(MAKE) -C ../source install INSTALLDIR=$(abspath $(BUILDDIR))
 
 man: ../source/terminal.mli
 	-mkdir $(TMPDIR)/man3
@@ -84,7 +84,7 @@ $(BINLN): | $(BUILDDIR)
 	-$(call LINK,$(BUILDDIR),$(BINLN))
 
 clean:
-	-make -C ../source clean uninstall INSTALLDIR=$(abspath $(BUILDDIR))
+	-$(MAKE) -C ../source clean uninstall INSTALLDIR=$(abspath $(BUILDDIR))
 	-$(RM) $(BUILDDIR)$(DIRSEP)*.exe $(BUILDDIR)$(DIRSEP)*.cm? $(BUILDDIR)$(DIRSEP)*.o
 	-$(call UNLINK,$(BINLN))
 	-rmdir $(BUILDDIR)$(DIRSEP)stublibs
