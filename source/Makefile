@@ -1,4 +1,4 @@
-HOST:=$(shell gcc -dumpmachine)
+HOST:=$(shell $(CC) -dumpmachine)
 TARGET=$(HOST)
 
 ifneq ($(ComSpec),)
@@ -22,6 +22,9 @@ endif
 
 ifneq ($(HOST),$(TARGET))
 PROGRAMPREFIX=$(TARGET)-
+ifneq ($(filter default environment undefined,$(origin CC)),)
+override CC=$(PROGRAMPREFIX)gcc
+endif
 else
 PROGRAMPREFIX=
 endif
@@ -44,7 +47,6 @@ DEFAULTLIB=$(1)
 endif
 
 AR=$(PROGRAMPREFIX)ar
-GCC=$(PROGRAMPREFIX)gcc
 OCAMLC=$(PROGRAMPREFIX)ocamlc
 OCAMLOPT=$(OCAMLC:c=opt)
 OCAMLMKLIB=$(OCAMLC:c=mklib)
@@ -110,7 +112,7 @@ $(BUILDDIR)/%.cmx: %.ml
 	$(OCAMLOPT) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -o $@ $<
 
 $(BUILDDIR)/%.o: %.c
-	$(GCC) -c -isystem "$(OCAMLLIBDIR)" $(CFLAGS) $(DLLCFLAGS) -o $@ $<
+	$(CC) -c -isystem "$(OCAMLLIBDIR)" $(CFLAGS) $(DLLCFLAGS) -o $@ $<
 
 ifeq ($(STUBLIBNAME),)
 $(BUILDDIR)/$(LIBNAME).cma: $(MLCMI) $(MLCMO)

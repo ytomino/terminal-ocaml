@@ -1,4 +1,4 @@
-HOST:=$(shell gcc -dumpmachine)
+HOST:=$(shell $(CC) -dumpmachine)
 TARGET=$(HOST)
 
 BUILDDIR=../$(TARGET).build
