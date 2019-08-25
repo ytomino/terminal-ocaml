@@ -7,7 +7,11 @@ PROGRAMPREFIX=$(TARGET)-
 BINLN=
 else
 PROGRAMPREFIX=
+ifneq ($(findstring mingw,$(HOST))$(findstring msys,$(HOST)),)
+BINLN=
+else
 BINLN=bin
+endif
 ifneq ($(shell rlwrap --version),)
 RLWRAP=rlwrap
 endif
@@ -15,18 +19,6 @@ endif
 
 OCAMLC=$(PROGRAMPREFIX)ocamlc
 OCAMLOPT=$(PROGRAMPREFIX)ocamlopt
-
-ifneq ($(ComSpec),)
-RM=del
-LINK=linkd $2 $1
-UNLINK=linkd $1 /d
-DIRSEP=\$(empty)
-else
-RM=rm
-LINK=ln -s $1 $2
-UNLINK=rm $1
-DIRSEP=/
-endif
 
 BUILDDIR=$(TARGET).build
 
@@ -81,11 +73,11 @@ man: ../source/terminal.mli
 	MANPATH=$(TMPDIR) man Terminal
 
 $(BINLN): | $(BUILDDIR)
-	-$(call LINK,$(BUILDDIR),$(BINLN))
+	ln -s $(BUILDDIR) $@
 
 clean:
 	-$(MAKE) -C ../source clean uninstall INSTALLDIR=$(abspath $(BUILDDIR))
-	-$(RM) $(BUILDDIR)$(DIRSEP)*.exe $(BUILDDIR)$(DIRSEP)*.cm? $(BUILDDIR)$(DIRSEP)*.o
-	-$(call UNLINK,$(BINLN))
-	-rmdir $(BUILDDIR)$(DIRSEP)stublibs
+	-rm $(BUILDDIR)/*.exe $(BUILDDIR)/*.cm? $(BUILDDIR)/*.o
+	-rm $(BINLN)
+	-rmdir $(BUILDDIR)/stublibs
 	-rmdir $(BUILDDIR)

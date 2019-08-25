@@ -1,25 +1,6 @@
 HOST:=$(shell $(CC) -dumpmachine)
 TARGET=$(HOST)
 
-ifneq ($(ComSpec),)
-empty=
-DIRSEP=\$(empty)
-CMDSEP=&
-RM=del $(subst /,$(DIRSEP),$(1))
-CP=copy $(subst /,$(DIRSEP),$(1)) $(subst /,$(DIRSEP),$(2))
-MKDIR=mkdir $(subst /,$(DIRSEP),$(1))
-RMDIR=rmdir $(subst /,$(DIRSEP),$(1))
-NOP=echo > NUL
-else
-DIRSEP=/
-CMDSEP=;
-RM=rm $(1)
-CP=cp $(1) $(2)
-MKDIR=mkdir -p $(1)
-RMDIR=rmdir $(1)
-NOP=echo > /dev/null
-endif
-
 ifneq ($(HOST),$(TARGET))
 PROGRAMPREFIX=$(TARGET)-
 ifneq ($(filter default environment undefined,$(origin CC)),)
@@ -139,47 +120,47 @@ endif
 endif
 
 $(BUILDDIR):
-	$(call MKDIR,$@)
+	mkdir -p $@
 
 clean:
-	-$(call RM,$(BUILDDIR)/$(LIBNAME).cma)
-	-$(call RM,$(BUILDDIR)/$(LIBNAME).a)
-	-$(call RM,$(BUILDDIR)/$(LIBNAME).cmxa)
-	-$(call RM,$(BUILDDIR)/dll$(STUBLIBNAME)$(DLLSUFFIX))
-	-$(call RM,$(BUILDDIR)/lib$(STUBLIBNAME).a)
-	-$(foreach i,$(COBJ) $(MLCMI) $(MLCMO) $(MLCMX) $(MLOBJ),$(call RM,$(i)) $(CMDSEP)) $(NOP)
+	-rm $(BUILDDIR)/$(LIBNAME).cma
+	-rm $(BUILDDIR)/$(LIBNAME).a
+	-rm $(BUILDDIR)/$(LIBNAME).cmxa
+	-rm $(BUILDDIR)/dll$(STUBLIBNAME)$(DLLSUFFIX)
+	-rm $(BUILDDIR)/lib$(STUBLIBNAME).a
+	-rm $(COBJ) $(MLCMI) $(MLCMO) $(MLCMX) $(MLOBJ)
 ifeq ($(BUILDDIR),$(TARGET).build)
-	-$(call RMDIR,$(BUILDDIR))
+	-rmdir $(BUILDDIR)
 endif
 
 install: all
-	-$(call MKDIR,$(INSTALLDIR))
-	$(foreach i,$(MLCMI),$(call CP,$(i),$(INSTALLDIR)) $(CMDSEP)) $(NOP)
-	$(call CP,$(BUILDDIR)/$(LIBNAME).cma,$(INSTALLDIR))
+	-mkdir -p $(INSTALLDIR)
+	cp $(MLCMI) $(INSTALLDIR)
+	cp $(BUILDDIR)/$(LIBNAME).cma $(INSTALLDIR)
 ifneq ($(STUBLIBNAME),)
-	-$(call MKDIR,$(INSTALLDIR)/stublibs)
-	$(call CP,$(BUILDDIR)/dll$(STUBLIBNAME)$(DLLSUFFIX),$(INSTALLDIR)/stublibs)
+	-mkdir $(INSTALLDIR)/stublibs
+	cp $(BUILDDIR)/dll$(STUBLIBNAME)$(DLLSUFFIX) $(INSTALLDIR)/stublibs
 endif
 ifneq ($(OCAMLOPT),)
-	$(foreach i,$(MLCMX),$(call CP,$(i),$(INSTALLDIR)) $(CMDSEP)) $(NOP)
-	$(call CP,$(BUILDDIR)/$(LIBNAME).a,$(INSTALLDIR))
-	$(call CP,$(BUILDDIR)/$(LIBNAME).cmxa,$(INSTALLDIR))
+	cp $(MLCMX) $(INSTALLDIR)
+	cp $(BUILDDIR)/$(LIBNAME).a $(INSTALLDIR)
+	cp $(BUILDDIR)/$(LIBNAME).cmxa $(INSTALLDIR)
 ifneq ($(STUBLIBNAME),)
-	$(call CP,$(BUILDDIR)/lib$(STUBLIBNAME).a,$(INSTALLDIR))
+	cp $(BUILDDIR)/lib$(STUBLIBNAME).a $(INSTALLDIR)
 endif
 endif
 
 uninstall:
-	-$(foreach i,$(MLCMI),$(call RM,$(INSTALLDIR)/$(notdir $(i))) $(CMDSEP)) $(NOP)
-	-$(call RM,$(INSTALLDIR)/$(LIBNAME).cma)
+	-rm $(addprefix $(INSTALLDIR)/,$(notdir $(MLCMI)))
+	-rm $(INSTALLDIR)/$(LIBNAME).cma
 ifneq ($(STUBLIBNAME),)
-	-$(call RM,$(INSTALLDIR)/stublibs/dll$(STUBLIBNAME)$(DLLSUFFIX))
+	-rm $(INSTALLDIR)/stublibs/dll$(STUBLIBNAME)$(DLLSUFFIX)
 endif
 ifneq ($(OCAMLOPT),)
-	-$(foreach i,$(MLCMX),$(call RM,$(INSTALLDIR)/$(notdir $(i))) $(CMDSEP)) $(NOP)
-	-$(call RM,$(INSTALLDIR)/$(LIBNAME).a)
-	-$(call RM,$(INSTALLDIR)/$(LIBNAME).cmxa)
+	-rm $(addprefix $(INSTALLDIR)/,$(notdir $(MLCMX)))
+	-rm $(INSTALLDIR)/$(LIBNAME).a
+	-rm $(INSTALLDIR)/$(LIBNAME).cmxa
 ifneq ($(STUBLIBNAME),)
-	-$(call RM,$(INSTALLDIR)/lib$(STUBLIBNAME).a)
+	-rm $(INSTALLDIR)/lib$(STUBLIBNAME).a
 endif
 endif
