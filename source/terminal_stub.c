@@ -241,40 +241,21 @@ static void get_size(int fd, int *width, int *height)
 {
 	/* Have it to write (fd, "\x1b[18t", 5); and receive "\x1b[8;W;Ht" ? */
 	bool failed;
-#if defined(__APPLE__) || defined(__gnu_linux__)
 	struct winsize win;
 	failed = ioctl(fd, TIOCGWINSZ, &win) < 0;
-#else
-	struct ttysize win;
-	failed = ioctl(fd, TIOCGSIZE, win) < 0;
-#endif
 	if(failed){
 		failwith("mlterminal(ioctl, failed to get size)");
 	}
-#if defined(__APPLE__) || defined(__gnu_linux__)
 	*width = win.ws_col;
 	*height = win.ws_row;
-#else
-	*width = win.ts_cols;
-	*height = win.ts_lines;
-#endif
 }
 
 static void set_size(int fd, int width, int height)
 {
-#if defined(__APPLE__) || defined(__gnu_linux__)
 	char buf[256];
 	int len;
 	len = snprintf(buf, 256, "\x1b[8;%d;%dt", height, width);
 	write(fd, buf, len); /* for Terminal.app, also xterm can accept this */
-#else
-	struct ttysize win;
-	win.ts_cols = width;
-	win.ts_lines = height;
-	if(ioctl(fd, TIOCSSIZE, win) < 0){
-		failwith("mlterminal(ioctl, failed to set size)");
-	}
-#endif
 }
 
 static int code_of_color(value x)
