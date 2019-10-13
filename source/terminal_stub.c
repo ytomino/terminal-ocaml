@@ -1101,7 +1101,42 @@ CAMLprim value mlterminal_d_input_line_utf8(value in)
 		caml_leave_blocking_section();
 		if(!succeeded){
 			free(wide_buf);
-			if(wide_length == 0) goto normal_file; /* redirected */
+			if(wide_length == 0){
+				/* redirected */
+				max_length = 256;
+				length = 0;
+				buf = malloc(max_length);
+				if(buf == NULL) caml_raise_out_of_memory();
+				for(;;){
+					char *p = buf + length;
+					DWORD r;
+					caml_enter_blocking_section();
+					bool succeeded = ReadFile(f, p, 1, &r, NULL);
+					caml_leave_blocking_section();
+					if(!succeeded){
+						free(buf);
+						failwith("mlterminal_d_input_line_utf8");
+					}
+					if(r <= 0){
+						free(buf);
+						caml_raise_end_of_file();
+					}else if(*p == '\n'){
+						if(length > 0 && *(p - 1) == '\r') --length;
+						break;
+					}
+					++ length;
+					if(length >= max_length){
+						max_length *= 2;
+						char *new_buf = realloc(buf, max_length);
+						if(new_buf == NULL){
+							free(buf);
+							caml_raise_out_of_memory();
+						}
+						buf = new_buf;
+					}
+				}
+				break; /* for */
+			}
 			failwith("mlterminal_d_input_line_utf8");
 		}
 		if(r <= 0){
@@ -1109,7 +1144,20 @@ CAMLprim value mlterminal_d_input_line_utf8(value in)
 			caml_raise_end_of_file();
 		}else if(*p == '\n'){
 			if(wide_length > 0 && *(p - 1) == '\r') --wide_length;
-			break;
+			/* succeeded */
+			max_length = wide_length * 6;
+			buf = malloc(max_length + 1);
+			length = WideCharToMultiByte(
+				CP_UTF8,
+				0,
+				wide_buf,
+				wide_length,
+				buf,
+				max_length,
+				NULL,
+				NULL);
+			free(wide_buf);
+			break; /* for */
 		}
 		++ wide_length;
 		if(wide_length >= wide_max_length){
@@ -1122,53 +1170,6 @@ CAMLprim value mlterminal_d_input_line_utf8(value in)
 			wide_buf = new_buf;
 		}
 	}
-	max_length = wide_length * 6;
-	buf = malloc(max_length + 1);
-	length = WideCharToMultiByte(
-		CP_UTF8,
-		0,
-		wide_buf,
-		wide_length,
-		buf,
-		max_length,
-		NULL,
-		NULL);
-	free(wide_buf);
-	goto make_result;
-normal_file:
-	max_length = 256;
-	length = 0;
-	buf = malloc(max_length);
-	if(buf == NULL) caml_raise_out_of_memory();
-	for(;;){
-		char *p = buf + length;
-		DWORD r;
-		caml_enter_blocking_section();
-		bool succeeded = ReadFile(f, p, 1, &r, NULL);
-		caml_leave_blocking_section();
-		if(!succeeded){
-			free(buf);
-			failwith("mlterminal_d_input_line_utf8");
-		}
-		if(r <= 0){
-			free(buf);
-			caml_raise_end_of_file();
-		}else if(*p == '\n'){
-			if(length > 0 && *(p - 1) == '\r') --length;
-			break;
-		}
-		++ length;
-		if(length >= max_length){
-			max_length *= 2;
-			char *new_buf = realloc(buf, max_length);
-			if(new_buf == NULL){
-				free(buf);
-				caml_raise_out_of_memory();
-			}
-			buf = new_buf;
-		}
-	}
-make_result:
 	result = caml_alloc_string(length);
 	memcpy(String_val(result), buf, length);
 	free(buf);
@@ -1213,32 +1214,35 @@ CAMLprim value mlterminal_d_is_empty(value in)
 #ifdef __WINNT__
 	INPUT_RECORD input_record;
 	DWORD r;
-	for(;;){
+	bool completed = false;
+	do{
 		if(!PeekConsoleInputW(f, &input_record, 1, &r)){
 			failwith("mlterminal_d_is_empty(PeekConsoleInputW)");
 		}else if(r == 0){
 			result = Val_bool(true);
-			goto done;
+			completed = true;
 		}else{
 			switch(input_record.EventType){
 			case KEY_EVENT:
 				if(input_record.Event.KeyEvent.bKeyDown){
 					result = Val_bool(false);
-					goto done;
+					completed = true;
 				}
-				break; /* will skip */
+				break;
 			case MOUSE_EVENT:
 			case WINDOW_BUFFER_SIZE_EVENT:
 				result = Val_bool(false);
-				goto done;
+				completed = true;
+				break;
 			default:
 				; /* will skip */
 			}
-			/* skip */
-			ReadConsoleInputW(f, &input_record, 1, &r);
+			if(!completed){
+				/* skip */
+				ReadConsoleInputW(f, &input_record, 1, &r);
+			}
 		}
-	}
-done:
+	}while(!completed);
 #else
 	result = Val_bool(!resized && is_empty(f));
 #endif
@@ -1254,7 +1258,8 @@ CAMLprim value mlterminal_d_input_event(value in)
 	INPUT_RECORD input_record;
 	DWORD r;
 	char buf[256];
-	for(;;){
+	bool completed = false;
+	do{
 		caml_enter_blocking_section();
 		bool succeeded = ReadConsoleInputW(f, &input_record, 1, &r);
 		caml_leave_blocking_section();
@@ -1386,7 +1391,7 @@ CAMLprim value mlterminal_d_input_event(value in)
 							}
 						}
 					}
-					goto done;
+					completed = true;
 				}
 				break;
 			case MOUSE_EVENT:
@@ -1428,24 +1433,24 @@ CAMLprim value mlterminal_d_input_event(value in)
 				buf[5] = m->dwMousePosition.Y + 0x22;
 				buf[6] = '\0';
 				result = caml_copy_string(buf);
-				goto done;
+				completed = true;
+				break;
 			case WINDOW_BUFFER_SIZE_EVENT:
 				w = &input_record.Event.WindowBufferSizeEvent;
 				wsprintf(buf, "\x1b[8;%d;%dt", w->dwSize.Y, w->dwSize.X);
 				result = caml_copy_string(buf);
-				goto done;
+				completed = true;
+				break;
 			default:
 				; /* continue */
 			}
 		}
-	}
-done:
+	}while(!completed);
 #else
 	char buf[256];
-	if(resized){
-		goto resized;
-	}else{
-		int i = 0;
+	int i = 0;
+	bool handling_resized = resized;
+	if(!handling_resized){
 		enum {
 			s_exit, s_init, s_escape, s_escape_param, s_escape_param_N,
 			s_escape_mouse_1, s_escape_mouse_2, s_escape_mouse_3
@@ -1458,7 +1463,10 @@ done:
 			if(break_on_sigwinch) set_restart_on_sigwinch(true);
 			caml_leave_blocking_section();
 			if(r < 0){
-				if(errno == EINTR && break_on_sigwinch && resized) goto resized;
+				if(errno == EINTR && break_on_sigwinch && resized){
+					handling_resized = true;
+					break; /* do */
+				}
 				failwith("mlterminal_d_input_event(read)");
 			}else if(r == 0){
 				if(state == s_init) caml_raise_end_of_file();
@@ -1517,21 +1525,20 @@ done:
 				}
 			}
 		}while(state != s_exit);
+	}
+	if(handling_resized){
+		resized = false;
+		if(!isatty(stdout)){
+			failwith("mlterminal_d_input_event"
+				"(stdout is not associated to terminal)");
+		}
+		int w, h;
+		get_size(stdout, &w, &h);
+		snprintf(buf, sizeof(buf), "\x1b[8;%d;%dt", h, w);
+	}else{
 		buf[i] = '\0';
-		result = caml_copy_string(buf);
 	}
-	goto done;
-resized:
-	resized = false;
-	if(!isatty(stdout)){
-		failwith("mlterminal_d_input_event"
-			"(stdout is not associated to terminal)");
-	}
-	int w, h;
-	get_size(stdout, &w, &h);
-	snprintf(buf, sizeof(buf), "\x1b[8;%d;%dt", h, w);
 	result = caml_copy_string(buf);
-done:
 #endif
 	CAMLreturn(result);
 }
