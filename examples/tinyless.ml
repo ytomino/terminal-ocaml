@@ -35,12 +35,15 @@ Sys.catch_break true;;
 (* install SIGINT handler *)
 
 Terminal.title filename (fun () ->
-	Terminal.screen stdout ~cursor:false ~wrap:false (fun stdout ->
+	let size =
+		let left, top, right, bottom = Terminal.view stdout in
+		(right - left + 1), (bottom - top + 1)
+	in
+	Terminal.screen stdout ~size ~cursor:false ~wrap:false (fun stdout ->
 		Terminal.Descr.mode Unix.stdin ~echo:false ~canonical:false (fun () ->
 			try
-				let left, top, right, bottom = Terminal.view stdout in
-				let width = ref (right - left + 1) in
-				let height = ref (bottom - top + 1) in
+				let width = ref (fst size) in
+				let height = ref (snd size) in
 				let trim s = (
 					if String.length s <= !width then s else
 					String.sub s 0 !width
@@ -84,9 +87,9 @@ Terminal.title filename (fun () ->
 							()
 						end
 					) else if Terminal.is_resized ev then (
-						let left, top, right, bottom = Terminal.view stdout in
-						width := right - left + 1;
-						height := bottom - top + 1;
+						let size = Terminal.size_of_event ev in
+						width := fst size;
+						height := snd size;
 						if !p + !height - 1 > line_count then (
 							p := line_count - (!height - 1)
 						);
