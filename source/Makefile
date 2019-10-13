@@ -130,9 +130,7 @@ clean:
 	-rm $(BUILDDIR)/dll$(STUBLIBNAME)$(DLLSUFFIX)
 	-rm $(BUILDDIR)/lib$(STUBLIBNAME).a
 	-rm $(COBJ) $(MLCMI) $(MLCMO) $(MLCMX) $(MLOBJ)
-ifeq ($(BUILDDIR),$(TARGET)$(BUILDSUFFIX))
 	-rmdir $(BUILDDIR)
-endif
 
 install: all
 	-mkdir -p $(INSTALLDIR)

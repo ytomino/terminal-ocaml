@@ -22,6 +22,7 @@ OCAMLOPT=$(PROGRAMPREFIX)ocamlopt
 
 BUILDSUFFIX=.noindex
 BUILDDIR=$(TARGET)$(BUILDSUFFIX)
+TERMINAL_BUILDDIR=$(BUILDDIR)/terminal$(BUILDSUFFIX)
 
 ITEMS=$(basename $(wildcard *.ml))
 
@@ -66,7 +67,9 @@ interactive: $(BUILDDIR)/terminal.cma
 	$(RLWRAP) ocaml -I $(BUILDDIR) unix.cma terminal.cma
 
 $(BUILDDIR) $(BUILDDIR)/terminal.cma $(BUILDDIR)/terminal.cmxa: $(wildcard ../source/terminal*)
-	$(MAKE) -C ../source install INSTALLDIR=$(abspath $(BUILDDIR))
+	$(MAKE) -C ../source install \
+		BUILDDIR=$(abspath $(TERMINAL_BUILDDIR)) \
+		INSTALLDIR=$(abspath $(BUILDDIR))
 
 man: ../source/terminal.mli
 	-mkdir $(TMPDIR)/man3
@@ -77,7 +80,9 @@ $(BINLN): | $(BUILDDIR)
 	ln -s $(BUILDDIR) $@
 
 clean:
-	-$(MAKE) -C ../source clean uninstall INSTALLDIR=$(abspath $(BUILDDIR))
+	-$(MAKE) -C ../source clean uninstall \
+		BUILDDIR=$(abspath $(TERMINAL_BUILDDIR)) \
+		INSTALLDIR=$(abspath $(BUILDDIR))
 	-rm $(BUILDDIR)/*.exe $(BUILDDIR)/*.cm? $(BUILDDIR)/*.o
 	-[ -h "$(BINLN)" ] && rm "$(BINLN)"
 	-rmdir $(BUILDDIR)/stublibs
