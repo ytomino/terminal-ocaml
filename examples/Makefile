@@ -20,7 +20,8 @@ endif
 OCAMLC=$(PROGRAMPREFIX)ocamlc
 OCAMLOPT=$(PROGRAMPREFIX)ocamlopt
 
-BUILDDIR=$(TARGET).build
+BUILDSUFFIX=.noindex
+BUILDDIR=$(TARGET)$(BUILDSUFFIX)
 
 ITEMS=$(basename $(wildcard *.ml))
 

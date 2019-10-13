@@ -39,7 +39,8 @@ DESTDIR=
 INSTALLDIR=$(addsuffix /,$(DESTDIR))$(PREFIX)/lib/ocaml
 DLLPREFIX=$(patsubst $(addsuffix /,$(DESTDIR))%,%,$(INSTALLDIR))/stublibs
 
-BUILDDIR=$(TARGET).build
+BUILDSUFFIX=.noindex
+BUILDDIR=$(TARGET)$(BUILDSUFFIX)
 
 all:
 
@@ -129,7 +130,7 @@ clean:
 	-rm $(BUILDDIR)/dll$(STUBLIBNAME)$(DLLSUFFIX)
 	-rm $(BUILDDIR)/lib$(STUBLIBNAME).a
 	-rm $(COBJ) $(MLCMI) $(MLCMO) $(MLCMX) $(MLOBJ)
-ifeq ($(BUILDDIR),$(TARGET).build)
+ifeq ($(BUILDDIR),$(TARGET)$(BUILDSUFFIX))
 	-rmdir $(BUILDDIR)
 endif
 
