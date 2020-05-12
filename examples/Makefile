@@ -24,7 +24,7 @@ BUILDSUFFIX=.noindex
 BUILDDIR=$(TARGET)$(BUILDSUFFIX)
 TERMINAL_BUILDDIR=$(BUILDDIR)/terminal$(BUILDSUFFIX)
 
-ITEMS=$(basename $(wildcard *.ml))
+ITEMS=$(basename $(notdir $(wildcard $(EXAMPLESPREFIX)*.ml)))
 
 .PHONY: all all-byte all-opt check interactive man clean
 
@@ -37,13 +37,13 @@ endif
 all-byte: $(addprefix $(BUILDDIR)/,$(addsuffix .byte.exe,$(ITEMS)))
 all-opt: $(addprefix $(BUILDDIR)/,$(addsuffix .opt.exe,$(ITEMS)))
 
-$(BUILDDIR)/%.byte.exe: %.ml $(BUILDDIR)/terminal.cma
-	$(OCAMLC) -c -o $(BUILDDIR)/$(<:.ml=.cmo) -I $(BUILDDIR) $(OCAMLCFLAGS) $<
-	$(OCAMLC) -o $@ -I $(BUILDDIR) unix.cma $(BUILDDIR)/terminal.cma $(BUILDDIR)/$(<:.ml=.cmo)
+$(BUILDDIR)/%.byte.exe: $(EXAMPLESPREFIX)%.ml $(BUILDDIR)/terminal.cma
+	$(OCAMLC) -c -o $(BUILDDIR)/$*.cmo -I $(BUILDDIR) $(OCAMLCFLAGS) $<
+	$(OCAMLC) -o $@ -I $(BUILDDIR) unix.cma $(BUILDDIR)/terminal.cma $(BUILDDIR)/$*.cmo
 
-$(BUILDDIR)/%.opt.exe: %.ml $(BUILDDIR)/terminal.cmxa
-	$(OCAMLOPT) -c -o $(BUILDDIR)/$(<:.ml=.cmx) -I $(BUILDDIR) $(OCAMLCFLAGS) $<
-	$(OCAMLOPT) -o $@ -I $(BUILDDIR) unix.cmxa $(BUILDDIR)/terminal.cmxa $(BUILDDIR)/$(<:.ml=.cmx)
+$(BUILDDIR)/%.opt.exe: $(EXAMPLESPREFIX)%.ml $(BUILDDIR)/terminal.cmxa
+	$(OCAMLOPT) -c -o $(BUILDDIR)/$*.cmx -I $(BUILDDIR) $(OCAMLCFLAGS) $<
+	$(OCAMLOPT) -o $@ -I $(BUILDDIR) unix.cmxa $(BUILDDIR)/terminal.cmxa $(BUILDDIR)/$*.cmx
 
 check: all $(TESTS)
 
