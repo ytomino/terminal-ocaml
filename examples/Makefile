@@ -26,7 +26,7 @@ TERMINAL_BUILDDIR=$(BUILDDIR)/terminal$(BUILDSUFFIX)
 
 ITEMS=$(basename $(wildcard *.ml))
 
-.PHONY: all all-byte all-opt interactive man clean $(addprefix test-,$(ITEMS))
+.PHONY: all all-byte all-opt check interactive man clean
 
 ifneq ($(HOST),$(TARGET))
 all: all-opt $(BINLN)
@@ -37,24 +37,6 @@ endif
 all-byte: $(addprefix $(BUILDDIR)/,$(addsuffix .byte.exe,$(ITEMS)))
 all-opt: $(addprefix $(BUILDDIR)/,$(addsuffix .opt.exe,$(ITEMS)))
 
-test-colors: $(BUILDDIR)/colors.byte.exe
-	$<
-
-test-cursor: $(BUILDDIR)/cursor.byte.exe
-	$<
-
-test-event: $(BUILDDIR)/event.byte.exe
-	$<
-
-test-info: $(BUILDDIR)/info.byte.exe
-	$<
-
-test-tinyless: $(BUILDDIR)/tinyless.byte.exe
-	$< tinyless.ml
-
-test-utf8io: $(BUILDDIR)/utf8io.byte.exe
-	$<
-
 $(BUILDDIR)/%.byte.exe: %.ml $(BUILDDIR)/terminal.cma
 	$(OCAMLC) -c -o $(BUILDDIR)/$(<:.ml=.cmo) -I $(BUILDDIR) $(OCAMLCFLAGS) $<
 	$(OCAMLC) -o $@ -I $(BUILDDIR) unix.cma $(BUILDDIR)/terminal.cma $(BUILDDIR)/$(<:.ml=.cmo)
@@ -62,6 +44,8 @@ $(BUILDDIR)/%.byte.exe: %.ml $(BUILDDIR)/terminal.cma
 $(BUILDDIR)/%.opt.exe: %.ml $(BUILDDIR)/terminal.cmxa
 	$(OCAMLOPT) -c -o $(BUILDDIR)/$(<:.ml=.cmx) -I $(BUILDDIR) $(OCAMLCFLAGS) $<
 	$(OCAMLOPT) -o $@ -I $(BUILDDIR) unix.cmxa $(BUILDDIR)/terminal.cmxa $(BUILDDIR)/$(<:.ml=.cmx)
+
+check: all $(TESTS)
 
 interactive: $(BUILDDIR)/terminal.cma
 	$(RLWRAP) ocaml -I $(BUILDDIR) unix.cma terminal.cma
