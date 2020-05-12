@@ -1,7 +1,7 @@
 HOST:=$(shell $(CC) -dumpmachine)
 TARGET=$(HOST)
 
-BUILDDIR=../$(TARGET).build
+BUILDDIR=../$(TARGET).noindex
 
 OCAMLOPT=$(PROGRAMPREFIX)ocamlopt
 
