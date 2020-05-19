@@ -15,28 +15,28 @@ external title: string -> (unit -> 'a) -> 'a =
 external title_utf8: string -> (unit -> 'a) -> 'a =
 	"mlterminal_title_utf8";;
 
-type color = {
-	red: int;
-	green: int;
-	blue: int;
-	intensity: int};;
+type color = int;;
 
-let black: color        = {red = 0; green = 0; blue = 0; intensity = 0};;
-let dark_red: color     = {red = 1; green = 0; blue = 0; intensity = 0};;
-let dark_green: color   = {red = 0; green = 1; blue = 0; intensity = 0};;
-let dark_yellow: color  = {red = 1; green = 1; blue = 0; intensity = 0};;
-let dark_blue: color    = {red = 0; green = 0; blue = 1; intensity = 0};;
-let dark_magenta: color = {red = 1; green = 0; blue = 1; intensity = 0};;
-let dark_cyan: color    = {red = 0; green = 1; blue = 1; intensity = 0};;
-let gray: color         = {red = 1; green = 1; blue = 1; intensity = 0};;
-let dark_gray: color    = {red = 0; green = 0; blue = 0; intensity = 1};;
-let red: color          = {red = 1; green = 0; blue = 0; intensity = 1};;
-let green: color        = {red = 0; green = 1; blue = 0; intensity = 1};;
-let yellow: color       = {red = 1; green = 1; blue = 0; intensity = 1};;
-let blue: color         = {red = 0; green = 0; blue = 1; intensity = 1};;
-let magenta: color      = {red = 1; green = 0; blue = 1; intensity = 1};;
-let cyan: color         = {red = 0; green = 1; blue = 1; intensity = 1};;
-let white: color        = {red = 1; green = 1; blue = 1; intensity = 1};;
+external system_16:
+	red:int -> green:int -> blue:int -> intensity:int -> color =
+	"mlterminal_system_16";;
+
+let black: color        = system_16 ~red:0 ~green:0 ~blue:0 ~intensity:0;;
+let dark_red: color     = system_16 ~red:1 ~green:0 ~blue:0 ~intensity:0;;
+let dark_green: color   = system_16 ~red:0 ~green:1 ~blue:0 ~intensity:0;;
+let dark_yellow: color  = system_16 ~red:1 ~green:1 ~blue:0 ~intensity:0;;
+let dark_blue: color    = system_16 ~red:0 ~green:0 ~blue:1 ~intensity:0;;
+let dark_magenta: color = system_16 ~red:1 ~green:0 ~blue:1 ~intensity:0;;
+let dark_cyan: color    = system_16 ~red:0 ~green:1 ~blue:1 ~intensity:0;;
+let gray: color         = system_16 ~red:1 ~green:1 ~blue:1 ~intensity:0;;
+let dark_gray: color    = system_16 ~red:0 ~green:0 ~blue:0 ~intensity:1;;
+let red: color          = system_16 ~red:1 ~green:0 ~blue:0 ~intensity:1;;
+let green: color        = system_16 ~red:0 ~green:1 ~blue:0 ~intensity:1;;
+let yellow: color       = system_16 ~red:1 ~green:1 ~blue:0 ~intensity:1;;
+let blue: color         = system_16 ~red:0 ~green:0 ~blue:1 ~intensity:1;;
+let magenta: color      = system_16 ~red:1 ~green:0 ~blue:1 ~intensity:1;;
+let cyan: color         = system_16 ~red:0 ~green:1 ~blue:1 ~intensity:1;;
+let white: color        = system_16 ~red:1 ~green:1 ~blue:1 ~intensity:1;;
 
 type event = string;;
 

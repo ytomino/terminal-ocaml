@@ -13,11 +13,11 @@ val title_utf8: string -> (unit -> 'a) -> 'a
 
 (** {6 Color type and values} *)
 
-type color = {
-	red: int;
-	green: int;
-	blue: int;
-	intensity: int}
+type color = private int
+
+val system_16: red:int -> green:int -> blue:int -> intensity:int -> color
+(** The 16 system colors. It's discriminated whether each value of [red],
+    [green], [blue], or [intensity] is 0 or not 0. *)
 
 val black: color
 val dark_red: color

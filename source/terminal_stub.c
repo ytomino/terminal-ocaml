@@ -85,13 +85,13 @@ static void install_window_input(void)
 static WORD default_attributes;
 static bool default_attributes_initialized = false;
 
-static int code_of_color(value x)
+static int system_16(int red, int green, int blue, int intensity)
 {
 	int result = 0;
-	if(Int_val(Field(x, 0))) result |= FOREGROUND_RED;
-	if(Int_val(Field(x, 1))) result |= FOREGROUND_GREEN;
-	if(Int_val(Field(x, 2))) result |= FOREGROUND_BLUE;
-	if(Int_val(Field(x, 3))) result |= FOREGROUND_INTENSITY;
+	if(red)       result |= FOREGROUND_RED;
+	if(green)     result |= FOREGROUND_GREEN;
+	if(blue)      result |= FOREGROUND_BLUE;
+	if(intensity) result |= FOREGROUND_INTENSITY;
 	return result;
 }
 
@@ -258,18 +258,14 @@ static void set_size(int fd, int width, int height)
 	write(fd, buf, len); /* for Terminal.app, also xterm can accept this */
 }
 
-static int code_of_color(value x)
+static int system_16(int red, int green, int blue, int intensity)
 {
 	int result = 0;
-	if(Int_val(Field(x, 0))) result |= 1; /* red */
-	if(Int_val(Field(x, 1))) result |= 2; /* green */
-	if(Int_val(Field(x, 2))) result |= 4; /* blue */
+	if(red)       result |= 1;
+	if(green)     result |= 2;
+	if(blue)      result |= 4;
+	if(intensity) result |= 8;
 	return result;
-}
-
-static bool mem_intensity(value x)
-{
-	return Int_val(Field(x, 3));
 }
 
 static bool current_cursor_visible = true;
@@ -397,6 +393,18 @@ CAMLprim value mlterminal_title_utf8(value title, value closure)
 		caml_raise(Extract_exception(result));
 	}
 	CAMLreturn(result);
+}
+
+CAMLprim value mlterminal_system_16(
+	value red,
+	value green,
+	value blue,
+	value intensity)
+{
+	CAMLparam4(red, green, blue, intensity);
+	int result =
+		system_16(Int_val(red), Int_val(green), Int_val(blue), Int_val(intensity));
+	CAMLreturn(Val_int(result));
 }
 
 CAMLprim value mlterminal_d_is_terminal(value out)
@@ -631,11 +639,11 @@ CAMLprim value mlterminal_d_color(
 	}
 	if(Is_block(foreground)){
 		attributes &= ~0x0f;
-		attributes |= code_of_color(Field(foreground, 0));
+		attributes |= Int_val(Field(foreground, 0));
 	}
 	if(Is_block(background)){
 		attributes &= ~0xf0;
-		attributes |= code_of_color(Field(background, 0)) << 4;
+		attributes |= Int_val(Field(background, 0)) << 4;
 	}
 	if(Is_block(reverse) && Bool_val(Field(reverse, 0))){
 		attributes = ((attributes & 0x0f) << 4) | ((attributes & 0xf0) >> 4);
@@ -675,24 +683,24 @@ CAMLprim value mlterminal_d_color(
 	}
 	if(Is_block(foreground)){
 		if(i > 2) buf[i++] = ';';
-		value fg = Field(foreground, 0);
-		if(!mem_intensity(fg)){
+		int fg = Int_val(Field(foreground, 0));
+		if((fg & 8) == 0){
 			buf[i++] = '3';
 		}else{
 			buf[i++] = '9';
 		}
-		buf[i++] = '0' + code_of_color(fg);
+		buf[i++] = '0' + (fg & 7);
 	}
 	if(Is_block(background)){
 		if(i > 2) buf[i++] = ';';
-		value bg = Field(background, 0);
-		if(!mem_intensity(bg)){
+		int bg = Int_val(Field(background, 0));
+		if((bg & 8) == 0){
 			buf[i++] = '4';
 		}else{
 			buf[i++] = '1';
 			buf[i++] = '0';
 		}
-		buf[i++] = '0' + code_of_color(bg);
+		buf[i++] = '0' + (bg & 7);
 	}
 	if(i > 2){
 		buf[i++] = 'm';
