@@ -268,6 +268,43 @@ static int system_16(int red, int green, int blue, int intensity)
 	return result;
 }
 
+static bool supports_256_result;
+static bool supports_256_result_initialized = false;
+
+static bool supports_256(void)
+{
+	if(!supports_256_result_initialized){
+		char const *p = getenv("TERM");
+		supports_256_result = p && strcmp(p, "xterm-256color") == 0;
+		supports_256_result_initialized = true;
+	}
+	return supports_256_result;
+}
+
+static int rgb_scale(float s)
+{
+	/* These constants are derived from xterm. */
+	double const t4 = 0xd7 / 255.0;
+	double const t3 = 0xaf / 255.0;
+	double const t2 = 0x87 / 255.0;
+	double const t1 = 0x5f / 255.0;
+	int result;
+	if(s >= (t4 + 1.0) / 2.0){
+		result = 5;
+	}else if(s >= (t3 + t4) / 2.0){
+		result = 4;
+	}else if(s >= (t2 + t3) / 2.0){
+		result = 3;
+	}else if(s >= (t1 + t2) / 2.0){
+		result = 2;
+	}else if(s >= t1 / 2.0){
+		result = 1;
+	}else{
+		result = 0;
+	}
+	return result;
+}
+
 static bool current_cursor_visible = true;
 
 static void set_cursor_visible(int fd, bool flag)
@@ -324,6 +361,29 @@ static void set_mouse_mode(int fd, bool flag)
 }
 
 #endif
+
+static int system_16_of_rgb(double red, double green, double blue)
+{
+	double const t3 = 0.75;
+	double const t2 = 0.5;
+	double const t1 = 0.25;
+	int result;
+	if(red >= t3 || green >= t3 || blue >= t3){
+		int r = red >= t3;
+		int g = green >= t3;
+		int b = blue >= t3;
+		result = system_16(r, g, b, 1);
+	}else if(red >= t2 || green >= t2 || blue >= t2){
+		int r = red >= t2;
+		int g = green >= t2;
+		int b = blue >= t2;
+		result = system_16(r, g, b, 0);
+	}else{
+		int i = red >= t1 && green >= t1 && blue >= t1;
+		result = system_16(0, 0, 0, i);
+	}
+	return result;
+}
 
 CAMLprim value mlterminal_title(value title, value closure)
 {
@@ -404,6 +464,59 @@ CAMLprim value mlterminal_system_16(
 	CAMLparam4(red, green, blue, intensity);
 	int result =
 		system_16(Int_val(red), Int_val(green), Int_val(blue), Int_val(intensity));
+	CAMLreturn(Val_int(result));
+}
+
+CAMLprim value mlterminal_supports_256(value unit)
+{
+	CAMLparam1(unit);
+	bool result;
+#ifdef __WINNT__
+	result = false;
+#else
+	result = supports_256();
+#endif
+	CAMLreturn(Val_bool(result));
+}
+
+CAMLprim value mlterminal_rgb(value red, value green, value blue)
+{
+	CAMLparam3(red, green, blue);
+	int result;
+	double r = Double_val(red);
+	double g = Double_val(green);
+	double b = Double_val(blue);
+#ifdef __WINNT__
+	result = system_16_of_rgb(r, g, b);
+#else
+	if(!supports_256()){
+		result = system_16_of_rgb(r, g, b);
+	}else{
+		result = 16 + 36 * rgb_scale(r) + 6 * rgb_scale(g) + rgb_scale(b);
+	}
+#endif
+	CAMLreturn(Val_int(result));
+}
+
+CAMLprim value mlterminal_grayscale(value scale)
+{
+	CAMLparam1(scale);
+	int result;
+	double s = Double_val(scale);
+#ifdef __WINNT__
+	result = system_16_of_rgb(s, s, s);
+#else
+	if(!supports_256()){
+		result = system_16_of_rgb(s, s, s);
+	}else{
+		result = (int)floor(s * nextafter(250.0, 0.0) + 5.0) / 10 + 231;
+		if(result < 232){
+			result = 16; /* #000000 */
+		}else if(result > 255){
+			result = 231; /* #ffffff */
+		}
+	}
+#endif
 	CAMLreturn(Val_int(result));
 }
 
@@ -684,23 +797,35 @@ CAMLprim value mlterminal_d_color(
 	if(Is_block(foreground)){
 		if(i > 2) buf[i++] = ';';
 		int fg = Int_val(Field(foreground, 0));
-		if((fg & 8) == 0){
-			buf[i++] = '3';
+		if(fg >= 16){
+			/* 256 color */
+			i += snprintf(buf + i, 256 - i, "38;5;%d", fg);
 		}else{
-			buf[i++] = '9';
+			/* system color */
+			if((fg & 8) == 0){
+				buf[i++] = '3';
+			}else{
+				buf[i++] = '9';
+			}
+			buf[i++] = '0' + (fg & 7);
 		}
-		buf[i++] = '0' + (fg & 7);
 	}
 	if(Is_block(background)){
 		if(i > 2) buf[i++] = ';';
 		int bg = Int_val(Field(background, 0));
-		if((bg & 8) == 0){
-			buf[i++] = '4';
+		if(bg >= 16){
+			/* 256 color */
+			i += snprintf(buf + i, 256 - i, "48;5;%d", bg);
 		}else{
-			buf[i++] = '1';
-			buf[i++] = '0';
+			/* system color */
+			if((bg & 8) == 0){
+				buf[i++] = '4';
+			}else{
+				buf[i++] = '1';
+				buf[i++] = '0';
+			}
+			buf[i++] = '0' + (bg & 7);
 		}
-		buf[i++] = '0' + (bg & 7);
 	}
 	if(i > 2){
 		buf[i++] = 'm';

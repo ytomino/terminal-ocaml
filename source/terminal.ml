@@ -38,6 +38,13 @@ let magenta: color      = system_16 ~red:1 ~green:0 ~blue:1 ~intensity:1;;
 let cyan: color         = system_16 ~red:0 ~green:1 ~blue:1 ~intensity:1;;
 let white: color        = system_16 ~red:1 ~green:1 ~blue:1 ~intensity:1;;
 
+external supports_256: unit -> bool = "mlterminal_supports_256";;
+
+external rgb: red:float -> green:float -> blue:float -> color =
+	"mlterminal_rgb";;
+
+external grayscale: float -> color = "mlterminal_grayscale";;
+
 type event = string;;
 
 let escape_sequence_of_event ev = ev;;

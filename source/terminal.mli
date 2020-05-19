@@ -36,6 +36,15 @@ val magenta: color
 val yellow: color
 val white: color
 
+val supports_256: unit -> bool
+(** Check whether the terminal supports 256 color. *)
+
+val rgb: red:float -> green:float -> blue:float -> color
+(** The RGB colors. The each parameter should be in 0.0 to 1.0. *)
+
+val grayscale: float -> color
+(** The grayscale colors. The parameter should be in 0.0 to 1.0. *)
+
 (** {6 Event} *)
 
 type event = private string

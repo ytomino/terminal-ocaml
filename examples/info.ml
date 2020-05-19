@@ -15,3 +15,6 @@ Printf.printf "view: (%d, %d)-(%d, %d)\n" left top right bottom;;
 
 let x, y = Terminal.position stdout in
 Printf.printf "position: (%d, %d)\n" x y;;
+
+let c256 = Terminal.supports_256 () in
+Printf.printf "256 color: %b\n" c256;;
