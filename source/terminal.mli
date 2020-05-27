@@ -62,14 +62,14 @@ val is_char: event -> bool
 (** Check whether a given event contains some char or not. *)
 
 val char_of_event: event -> char
-(** Retrun the char of a given event. *)
+(** Return the char of a given event. *)
 
 val is_string: event -> bool
 (** Check whether a given event contains some string(non-escape sequence) or
     not. *)
 
 val string_of_event: event -> string
-(** Retrun the string of a given event. *)
+(** Return the string of a given event. *)
 
 val is_resized: event -> bool
 (** Check whether a given event means the terminal window has been resized.
@@ -111,10 +111,10 @@ val is_key: event -> bool
 (** Check whether a given event contains some key or not. *)
 
 val key_of_event: event -> [key | `unknown]
-(** Retrun the key of a given event. *)
+(** Return the key of a given event. *)
 
 val shift_of_event: event -> shift_state
-(** Retrun the shift state of a given event.
+(** Return the shift state of a given event.
     [shift_of_event] works for key events and also mouse button events. *)
 
 type shift_key = private int
@@ -150,7 +150,7 @@ val button_of_event: event -> [button | `unknown]
 (** Return the clicked mouse button of a given event. *)
 
 val position_of_event: event -> int * int
-(** Retrun the pointed position of a given event. *)
+(** Return the pointed position of a given event. *)
 
 (** {6 Operations for Unix.file_descr} *)
 
@@ -231,10 +231,10 @@ module Descr: sig
 	val input_line_utf8: file_descr -> string
 	
 	val is_empty: file_descr -> bool
-	(** Check whether a given file descripter is empty or having any events. *)
+	(** Check whether a given file descriptor is empty or having any events. *)
 	
 	val input_event: file_descr -> event
-	(** Read one event from a given file descripter. *)
+	(** Read one event from a given file descriptor. *)
 	
 end
 (** Operations for Unix.file_descr.
@@ -347,7 +347,7 @@ val buffered_line_in: in_channel -> int
     not been read yet, from current position until ['\n'].
     If a returned value is [max_int], no ['\n'] is in the buffer.
     It means the current line is continuing.
-    Otherwide, all of the current line is buffered. *)
+    Otherwise, all of the current line is buffered. *)
 
 val mode:
 	in_channel ->
