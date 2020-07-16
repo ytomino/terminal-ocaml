@@ -84,7 +84,7 @@ let read_digits = (
 	loop 0
 );;
 
-let parse_3 (f: int -> int -> int -> char -> 'a) (bad: 'a) (ev: string): 'a = (
+let parse_3 (f: int -> int -> int -> char -> 'a) (bad: 'a) (ev: string) = (
 	let length = String.length ev in
 	if length < 5 || ev.[0] <> '\x1b' || ev.[1] <> '[' then bad else
 	let p1s = 2 in
@@ -145,7 +145,7 @@ type key = [
 
 type shift_state = int;;
 
-let parse_key (f: int -> int -> char -> 'a) (bad: 'a) (ev: string): 'a = (
+let parse_key (f: int -> int -> char -> 'a) (bad: 'a) (ev: string) = (
 	let length = String.length ev in
 	if length < 3 || ev.[0] <> '\x1b' then bad else
 	begin match ev.[1] with
@@ -444,8 +444,7 @@ let color
 	?concealed
 	?foreground
 	?background
-	()
-	: unit =
+	() =
 (
 	flush out;
 	Descr.color
