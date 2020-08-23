@@ -49,9 +49,7 @@ type event = string;;
 
 let escape_sequence_of_event ev = ev;;
 
-let is_char ev = (
-	String.length ev = 1
-);;
+let is_char ev = String.length ev = 1;;
 
 let char_of_event ev = (
 	assert (is_char ev);
@@ -339,9 +337,10 @@ module Descr = struct
 		"mlterminal_d_clear_screen";;
 	external clear_eol: file_descr -> unit -> unit =
 		"mlterminal_d_clear_eol";;
-	let clear_line f () =
+	let clear_line f () = (
 		move_to_bol f ();
-		clear_eol f ();;
+		clear_eol f ()
+	);;
 	
 	external scroll: file_descr -> int -> unit =
 		"mlterminal_d_scroll";;
@@ -370,9 +369,7 @@ module Descr = struct
 		if w < len then failwith("Terminal.Descr.output_substring")
 	);;
 	
-	let output_string fd s = (
-		output_substring fd s 0 (String.length s)
-	);;
+	let output_string fd s = output_substring fd s 0 (String.length s);;
 	
 	external output_substring_utf8: file_descr -> string -> int -> int -> unit =
 		"mlterminal_d_output_substring_utf8";;
