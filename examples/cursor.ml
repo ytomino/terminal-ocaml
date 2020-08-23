@@ -26,5 +26,5 @@ let x = Terminal.save stdout (fun () ->
 	print_string "E"; (* red *)
 	"12345"
 ) in
-print_string x; (* not red *)
-print_newline ();
+print_string x;; (* not red *)
+print_newline ();;

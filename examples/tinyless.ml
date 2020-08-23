@@ -27,7 +27,7 @@ let lines =
 			close_in f;
 			Array.of_list (List.rev lines)
 	) in
-	loop (open_in filename) []
+	loop (open_in filename) [];;
 
 let line_count = Array.length lines;;
 
