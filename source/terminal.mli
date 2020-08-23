@@ -193,13 +193,8 @@ module Descr: sig
 	val show_cursor: file_descr -> bool -> unit
 	val wrap: file_descr -> bool -> unit
 	
-	val screen:
-		file_descr ->
-		?size:(int * int) ->
-		?cursor:bool ->
-		?wrap:bool ->
-		(file_descr -> 'a) ->
-		'a
+	val screen: file_descr -> ?size:(int * int) -> ?cursor:bool -> ?wrap:bool ->
+		(file_descr -> 'a) -> 'a
 	
 	val output: file_descr -> bytes -> int -> int -> unit
 	(** Same as [Unix.write], but the returned type is unit. *)
@@ -216,14 +211,8 @@ module Descr: sig
 	val output_newline: file_descr -> unit -> unit
 	(** Write "\n" (in POSIX) or "\r\n" (in Windows). *)
 	
-	val mode:
-		file_descr ->
-		?echo:bool ->
-		?canonical:bool ->
-		?control_c:bool ->
-		?mouse:bool ->
-		(unit -> 'a) ->
-		'a
+	val mode: file_descr -> ?echo:bool -> ?canonical:bool -> ?control_c:bool ->
+		?mouse:bool -> (unit -> 'a) -> 'a
 	
 	val input: file_descr -> bytes -> int -> int -> int
 	(** Same as [Unix.read]. *)
@@ -235,7 +224,6 @@ module Descr: sig
 	
 	val input_event: file_descr -> event
 	(** Read one event from a given file descriptor. *)
-	
 end
 (** Operations for Unix.file_descr.
     [Descr.any_func fd] is equal to [any_func (Unix.out_channel_of_descr fd)]
@@ -273,18 +261,9 @@ val move: out_channel -> int -> int -> unit
 val move_to_bol: out_channel -> unit -> unit
 (** [move_to_bol oc ()] moves the cursor to the beginning of the line. *)
 
-val color:
-	out_channel ->
-	?reset:bool ->
-	?bold:bool ->
-	?underscore:bool ->
-	?blink:bool ->
-	?reverse:bool ->
-	?concealed:bool ->
-	?foreground:color ->
-	?background:color ->
-	unit ->
-	unit
+val color: out_channel -> ?reset:bool -> ?bold:bool -> ?underscore:bool ->
+	?blink:bool -> ?reverse:bool -> ?concealed:bool -> ?foreground:color ->
+	?background:color -> unit -> unit
 (** [color oc ~reset ~bold ~underscore ~blink ~reverse ~concealed ~foreground
     ~background ()] sets the color for writing. *)
 
@@ -311,13 +290,8 @@ val show_cursor: out_channel -> bool -> unit
 val wrap: out_channel -> bool -> unit
 (** [wrap oc flag] enables or disables line wrapping. *)
 
-val screen:
-	out_channel ->
-	?size:(int * int) ->
-	?cursor:bool ->
-	?wrap:bool ->
-	(out_channel -> 'a) ->
-	'a
+val screen: out_channel -> ?size:(int * int) -> ?cursor:bool -> ?wrap:bool ->
+	(out_channel -> 'a) -> 'a
 (** [screen oc ~size ~cursor ~wrap f] saves the current screen buffer,
     uses new screen buffer, and restores it.
     If [~size] is given, same as [set_size oc size].
@@ -349,14 +323,8 @@ val buffered_line_in: in_channel -> int
     It means the current line is continuing.
     Otherwise, all of the current line is buffered. *)
 
-val mode:
-	in_channel ->
-	?echo:bool ->
-	?canonical:bool ->
-	?control_c:bool ->
-	?mouse:bool ->
-	(unit -> 'a) ->
-	'a
+val mode: in_channel -> ?echo:bool -> ?canonical:bool -> ?control_c:bool ->
+	?mouse:bool -> (unit -> 'a) -> 'a
 (** [mode ic ~echo ~canonical ~control_c ~mouse f] saves, changes, and restores
     the mode of a given input channel.
     If [~echo] is given, enables or disables echoing.

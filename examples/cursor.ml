@@ -20,11 +20,13 @@ print_string "D";;
 
 print_newline ();;
 
-let x = Terminal.save stdout (fun () ->
-	Terminal.move stdout 2 (-3);
-	Terminal.color stdout ~foreground:Terminal.red ();
-	print_string "E"; (* red *)
-	"12345"
-) in
+let x =
+	Terminal.save stdout (fun () ->
+		Terminal.move stdout 2 (-3);
+		Terminal.color stdout ~foreground:Terminal.red ();
+		print_string "E"; (* red *)
+		"12345"
+	)
+in
 print_string x;; (* not red *)
 print_newline ();;

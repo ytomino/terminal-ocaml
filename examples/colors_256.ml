@@ -4,10 +4,8 @@ for r1 = 0 to 1 do
 		for r2 = 0 to 3 do
 			for b = 0 to 7 do
 				let background =
-					Terminal.rgb
-						~red:(float_of_int (r1 * 4 + r2) /. 7.0)
-						~green:(float_of_int g /. 7.0)
-						~blue:(float_of_int b /. 7.0)
+					Terminal.rgb ~red:(float_of_int (r1 * 4 + r2) /. 7.0)
+						~green:(float_of_int g /. 7.0) ~blue:(float_of_int b /. 7.0)
 				in
 				Terminal.color stdout ~background ();
 				print_string "  "
