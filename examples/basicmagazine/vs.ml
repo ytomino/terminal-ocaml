@@ -258,7 +258,7 @@ let ball = "⚫";;
 
 let rec run (stdout, stdin: Unix.file_descr * Unix.file_descr): unit = (
 	let cls () = Terminal.Descr.clear_screen stdout () in
-	let print = Terminal.Descr.output_string stdout in
+	let print = Terminal.Descr.output_string_utf8 stdout in
 	let nl () = Terminal.Descr.output_newline stdout () in
 	let bs () = Terminal.Descr.move stdout (-1) (+1) in
 	let color n = (
