@@ -1065,7 +1065,7 @@ CAMLprim value mlterminal_d_output_substring_utf8(
 	size_t length = Int_val(len);
 	PWSTR wide_s = malloc((length + 1) * sizeof(WCHAR));
 	if(wide_s == NULL) caml_raise_out_of_memory();
-	char *p = String_val(s) + Int_val(pos);
+	char const *p = String_val(s) + Int_val(pos);
 	size_t wide_length = MultiByteToWideChar(
 		CP_UTF8,
 		0,
@@ -1304,7 +1304,7 @@ CAMLprim value mlterminal_d_input_line_utf8(value in)
 		}
 	}
 	result = caml_alloc_string(length);
-	memcpy(String_val(result), buf, length);
+	memcpy((char *)String_val(result), buf, length);
 	free(buf);
 #else
 	size_t max_length = 256;
@@ -1333,7 +1333,7 @@ CAMLprim value mlterminal_d_input_line_utf8(value in)
 		}
 	}
 	result = caml_alloc_string(length);
-	memcpy(String_val(result), buf, length);
+	memcpy((char *)String_val(result), buf, length);
 	free(buf);
 #endif
 	CAMLreturn(result);
@@ -1709,7 +1709,7 @@ CAMLprim value mlterminal_utf8_of_locale(value s)
 	CAMLparam1(s);
 	CAMLlocal1(result);
 #ifdef __WINNT__
-	char *mbcs_str = String_val(s);
+	char const *mbcs_str = String_val(s);
 	size_t mbcs_length = caml_string_length(s);
 	size_t wide_max_length = mbcs_length; /* from DBCD to UTF-16 */
 	PWSTR wide_str = malloc((wide_max_length + 1) * sizeof(WCHAR));
@@ -1733,7 +1733,7 @@ CAMLprim value mlterminal_utf8_of_locale(value s)
 		NULL,
 		NULL);
 	result = caml_alloc_string(utf8_length);
-	memcpy(String_val(result), utf8_str, utf8_length);
+	memcpy((char *)String_val(result), utf8_str, utf8_length);
 	free(wide_str);
 	free(utf8_str);
 #else
@@ -1747,7 +1747,7 @@ CAMLprim value mlterminal_locale_of_utf8(value s)
 	CAMLparam1(s);
 	CAMLlocal1(result);
 #ifdef __WINNT__
-	char *utf8_str = String_val(s);
+	char const *utf8_str = String_val(s);
 	size_t utf8_length = caml_string_length(s);
 	size_t wide_max_length = utf8_length; /* from UTF-8 to UTF-16 */
 	PWSTR wide_str = malloc((wide_max_length + 1) * sizeof(WCHAR));
@@ -1771,7 +1771,7 @@ CAMLprim value mlterminal_locale_of_utf8(value s)
 		NULL,
 		NULL);
 	result = caml_alloc_string(mbcs_length);
-	memcpy(String_val(result), mbcs_str, mbcs_length);
+	memcpy((char *)String_val(result), mbcs_str, mbcs_length);
 	free(wide_str);
 	free(mbcs_str);
 #else
