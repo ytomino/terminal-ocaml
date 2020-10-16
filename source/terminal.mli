@@ -1,6 +1,6 @@
 (** Terminal library for Objective-Caml *)
 
-(** {6 Title} *)
+(** {1 Title} *)
 
 val title: string -> (unit -> 'a) -> 'a
 (** [title t f] saves the old window title, sets it to a given string [t],
@@ -12,7 +12,7 @@ val title_utf8: string -> (unit -> 'a) -> 'a
     encoded string [t], and restores it.
     In POSIX, it's same as [set_title]. *)
 
-(** {6 Color type and values} *)
+(** {1 Color type and values} *)
 
 type color = private int
 (** Color. The representation is not portable. *)
@@ -48,7 +48,7 @@ val rgb: red:float -> green:float -> blue:float -> color
 val grayscale: float -> color
 (** The grayscale colors. The parameter should be in 0.0 to 1.0. *)
 
-(** {6 Event} *)
+(** {1 Event} *)
 
 type event = private string
 (** Event.
@@ -152,12 +152,14 @@ val button_of_event: event -> [button | `unknown]
 val position_of_event: event -> int * int
 (** Return the pointed position of a given event. *)
 
-(** {6 Operations for Unix.file_descr} *)
+(** {1 Operations on Unix.file_descr} *)
 
 module Descr: sig
 	open Unix
 	
 	val is_terminal: file_descr -> bool
+	
+	(** {2 Output file_descr} *)
 	
 	val size: file_descr -> int * int
 	val set_size: file_descr -> int -> int -> unit
@@ -211,6 +213,8 @@ module Descr: sig
 	val output_newline: file_descr -> unit -> unit
 	(** Write "\n" (in POSIX) or "\r\n" (in Windows). *)
 	
+	(** {2 Input file_descr} *)
+	
 	val mode: file_descr -> ?echo:bool -> ?canonical:bool -> ?control_c:bool ->
 		?mouse:bool -> (unit -> 'a) -> 'a
 	
@@ -225,14 +229,16 @@ module Descr: sig
 	val input_event: file_descr -> event
 	(** Read one event from a given file descriptor. *)
 end
-(** Operations for Unix.file_descr.
+(** Operations on Unix.file_descr.
     [Descr.any_func fd] is equal to [any_func (Unix.out_channel_of_descr fd)]
     or [any_func (Unix.in_channel_of_descr fd)].
     This module has the additional output function [output_newline], and the
     additional input functions [is_empty] and [input_event] for event handling.
     *)
 
-(** {6 Operations for output channel} *)
+(** {1 Operations on Input/output channels} *)
+
+(** {2 Output channel} *)
 
 val is_terminal_out: out_channel -> bool
 (** [is_terminal_out oc] returns true if a given output channel is associated
@@ -306,7 +312,7 @@ val output_string_utf8: out_channel -> string -> unit
 (** Write a UTF-8 encoded string to a given output channel.
     In POSIX, It's same as [Pervasives.output_string]. *)
 
-(** {6 Operations for input channel} *)
+(** {2 Input channel} *)
 
 val is_terminal_in: in_channel -> bool
 (** [is_terminal_in ic] returns true if a given input channel is associated to
@@ -338,7 +344,7 @@ val input_line_utf8: in_channel -> string
     And return a UTF-8 encoded string.
     In POSIX, It's same as [Pervasives.input_line]. *)
 
-(** {6 Miscellany} *)
+(** {1 Miscellany} *)
 
 val utf8_of_locale: string -> string
 (** In windows, encode a string from the active code page to UTF-8.
