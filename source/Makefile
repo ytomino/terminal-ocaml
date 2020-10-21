@@ -61,6 +61,7 @@ CCLIB=
 LDFLAGS=
 
 $(BUILDDIR)/terminal.cmo: $(BUILDDIR)/terminal.cmi
+$(BUILDDIR)/terminal.cmx: $(BUILDDIR)/terminal.cmi
 ########
 
 ifeq ($(DLLPREFIX),$(OCAMLLIBDIR)/stublibs)
