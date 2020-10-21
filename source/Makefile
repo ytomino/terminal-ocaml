@@ -12,14 +12,14 @@ endif
 
 ifneq ($(findstring mingw,$(TARGET)),)
 DLLSUFFIX=.dll
-LD=flexlink -show-imports -show-exports -noentry -chain mingw
+DLLLD=flexlink -show-imports -show-exports -noentry -chain mingw
 DEFAULTLIB=$(addprefix -defaultlib ,$(1))
 else
 DLLSUFFIX=.so
 ifneq ($(findstring darwin,$(TARGET)),)
-LD=$(PROGRAMPREFIX)ld -bundle -flat_namespace -undefined suppress /usr/lib/bundle1.o
+DLLLD=$(CC) -shared -flat_namespace -undefined suppress
 else
-LD=$(PROGRAMPREFIX)ld -shared
+DLLLD=$(CC) -shared
 ifneq ($(findstring bsd,$(TARGET))$(findstring linux,$(TARGET)),)
 DLLCFLAGS=-fPIC
 endif
@@ -113,7 +113,7 @@ endif
 else
 $(BUILDDIR)/$(LIBNAME).cma: $(COBJ) $(MLCMI) $(MLCMO)
 	$(OCAMLC) -a -o $(BUILDDIR)/$(LIBNAME).cma $(MLCMO) -cclib -l$(STUBLIBNAME) $(CCLIB) $(DLLIB)
-	$(LD) -o $(BUILDDIR)/dll$(STUBLIBNAME)$(DLLSUFFIX) $(COBJ) $(LDFLAGS)
+	$(DLLLD) -o $(BUILDDIR)/dll$(STUBLIBNAME)$(DLLSUFFIX) $(COBJ) $(LDFLAGS)
 $(BUILDDIR)/$(LIBNAME).cmxa: $(COBJ) $(MLCMI) $(MLCMX)
 	$(OCAMLOPT) -a -o $(BUILDDIR)/$(LIBNAME).cmxa $(MLCMX) -cclib -l$(STUBLIBNAME) $(CCLIB)
 	$(AR) rcs $(BUILDDIR)/lib$(STUBLIBNAME).a $(COBJ)
