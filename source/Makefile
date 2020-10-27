@@ -3,35 +3,15 @@ TARGET=$(HOST)
 
 ifneq ($(TARGET),$(HOST))
 PROGRAMPREFIX=$(TARGET)-
-ifneq ($(filter default environment undefined,$(origin CC)),)
-override CC=$(PROGRAMPREFIX)gcc
-endif
 else
 PROGRAMPREFIX=
 endif
 
-ifneq ($(findstring mingw,$(TARGET)),)
-DLLSUFFIX=.dll
-DLLLD=flexlink -show-imports -show-exports -noentry -chain mingw
-DEFAULTLIB=$(addprefix -defaultlib ,$(1))
-else
-DLLSUFFIX=.so
-ifneq ($(findstring darwin,$(TARGET)),)
-DLLLD=$(CC) -shared -flat_namespace -undefined suppress
-else
-DLLLD=$(CC) -shared
-ifneq ($(findstring bsd,$(TARGET))$(findstring linux,$(TARGET)),)
-DLLCFLAGS=-fPIC
-endif
-endif
-DEFAULTLIB=$(1)
-endif
-
-AR=$(PROGRAMPREFIX)ar
 OCAMLC=$(PROGRAMPREFIX)ocamlc
 OCAMLOPT=$(OCAMLC:c=opt)
 
 OCAMLLIBDIR:=$(shell $(OCAMLC) -where)
+include $(OCAMLLIBDIR)/Makefile.config
 
 PREFIX=$(abspath $(OCAMLLIBDIR)/../..)
 DESTDIR=
@@ -65,7 +45,7 @@ DLLPREFIX=$(patsubst $(addsuffix /,$(DESTDIR))%,%,$(INSTALLDIR))/stublibs
 ifeq ($(DLLPREFIX),$(OCAMLLIBDIR)/stublibs)
 DLLIB=$(addprefix -dllib -l,$(STUBLIBNAME))
 else
-DLLIB=$(addprefix -dllib $(DLLPREFIX)/dll,$(addsuffix $(DLLSUFFIX),$(STUBLIBNAME)))
+DLLIB=$(addprefix -dllib $(DLLPREFIX)/dll,$(addsuffix $(EXT_DLL),$(STUBLIBNAME)))
 endif
 SLLIB=$(addprefix -cclib -l,$(STUBLIBNAME))
 
@@ -75,7 +55,7 @@ MLOBJ=$(addprefix $(BUILDDIR)/,$(addsuffix .o,$(basename $(MLSRC))))
 MLCMI=$(addprefix $(BUILDDIR)/,$(addsuffix .cmi,$(sort $(basename $(MLI) $(MLSRC) $(MLINIT)))))
 
 COBJ=$(addprefix $(BUILDDIR)/,$(addsuffix .o,$(basename $(CSRC))))
-CDLL=$(addprefix $(BUILDDIR)/dll,$(addsuffix $(DLLSUFFIX),$(STUBLIBNAME)))
+CDLL=$(addprefix $(BUILDDIR)/dll,$(addsuffix $(EXT_DLL),$(STUBLIBNAME)))
 CSLL=$(addprefix $(BUILDDIR)/lib,$(addsuffix .a,$(STUBLIBNAME)))
 
 .PHONY: all clean install uninstall
@@ -96,7 +76,7 @@ $(BUILDDIR)/%.cmx: %.ml
 	$(OCAMLOPT) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -o $@ $<
 
 $(BUILDDIR)/%.o: %.c
-	$(CC) -c -isystem "$(OCAMLLIBDIR)" $(CFLAGS) $(DLLCFLAGS) -o $@ $<
+	$(CC) -c -isystem "$(OCAMLLIBDIR)" $(CFLAGS) $(SHAREDLIB_CFLAGS) -o $@ $<
 
 $(BUILDDIR)/$(LIBNAME).cma: $(MLCMI) $(MLCMO) $(CDLL)
 	$(OCAMLC) -a -o $@ $(MLCMO) $(DLLIB) $(CCLIB)
@@ -105,12 +85,12 @@ $(BUILDDIR)/$(LIBNAME).cmxa: $(MLCMI) $(MLCMX) $(CSLL)
 	$(OCAMLOPT) -a -o $@ $(MLCMX) $(SLLIB) $(CCLIB)
 
 ifneq ($(STUBLIBNAME),)
-$(BUILDDIR)/dll$(STUBLIBNAME)$(DLLSUFFIX): $(COBJ)
-	$(DLLLD) -o $@ $< $(LDFLAGS)
+$(BUILDDIR)/dll$(STUBLIBNAME)$(EXT_DLL): $(COBJ)
+	$(MKDLL) -o $@ $< $(LDFLAGS)
 
 ifneq ($(OCAMLOPT),)
 $(BUILDDIR)/lib$(STUBLIBNAME).a: $(COBJ)
-	$(AR) rcs $@ $<
+	$(ARCMD) rcs $@ $<
 endif
 endif
 
@@ -123,7 +103,7 @@ clean:
 	-rm $(BUILDDIR)/$(LIBNAME).cmxa
 	-rm $(MLCMI) $(MLCMO) $(MLCMX) $(MLOBJ)
 ifneq ($(STUBLIBNAME),)
-	-rm $(BUILDDIR)/dll$(STUBLIBNAME)$(DLLSUFFIX)
+	-rm $(BUILDDIR)/dll$(STUBLIBNAME)$(EXT_DLL)
 	-rm $(BUILDDIR)/lib$(STUBLIBNAME).a
 	-rm $(COBJ)
 endif
@@ -135,7 +115,7 @@ install: all
 	cp $(BUILDDIR)/$(LIBNAME).cma $(INSTALLDIR)
 ifneq ($(STUBLIBNAME),)
 	-mkdir $(INSTALLDIR)/stublibs
-	cp $(BUILDDIR)/dll$(STUBLIBNAME)$(DLLSUFFIX) $(INSTALLDIR)/stublibs
+	cp $(BUILDDIR)/dll$(STUBLIBNAME)$(EXT_DLL) $(INSTALLDIR)/stublibs
 endif
 ifneq ($(OCAMLOPT),)
 	cp $(MLCMX) $(INSTALLDIR)
@@ -150,7 +130,7 @@ uninstall:
 	-rm $(addprefix $(INSTALLDIR)/,$(notdir $(MLCMI)))
 	-rm $(INSTALLDIR)/$(LIBNAME).cma
 ifneq ($(STUBLIBNAME),)
-	-rm $(INSTALLDIR)/stublibs/dll$(STUBLIBNAME)$(DLLSUFFIX)
+	-rm $(INSTALLDIR)/stublibs/dll$(STUBLIBNAME)$(EXT_DLL)
 endif
 ifneq ($(OCAMLOPT),)
 	-rm $(addprefix $(INSTALLDIR)/,$(notdir $(MLCMX)))
