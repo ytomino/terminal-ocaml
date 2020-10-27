@@ -1,4 +1,3 @@
-# cross compiling ex. make TARGET=i686-w64-mingw32 all-opt
 HOST:=$(shell $(CC) -dumpmachine)
 TARGET=$(HOST)
 
@@ -18,39 +17,48 @@ endif
 endif
 
 OCAMLC=$(PROGRAMPREFIX)ocamlc
-OCAMLOPT=$(PROGRAMPREFIX)ocamlopt
+OCAMLOPT=$(OCAMLC:c=opt)
 
 BUILDSUFFIX=.noindex
 BUILDDIR=$(TARGET)$(BUILDSUFFIX)
 TERMINAL_BUILDDIR=$(BUILDDIR)/terminal$(BUILDSUFFIX)
 
-ITEMS=$(basename $(notdir $(wildcard $(EXAMPLESPREFIX)*.ml)))
+EXAMPLES1=$(basename $(notdir $(wildcard *.ml)))
+EXAMPLES=$(EXAMPLES1) vs
 
-.PHONY: all all-byte all-opt check interactive man clean
+.PHONY: all check interactive man clean
 
-ifneq ($(HOST),$(TARGET))
-all: all-opt $(BINLN)
-else
-all: all-byte all-opt $(BINLN)
+all: \
+	$(patsubst %,$(BUILDDIR)/%.byte.exe,$(EXAMPLES)) \
+	$(if $(OCAMLOPT),$(patsubst %,$(BUILDDIR)/%.opt.exe,$(EXAMPLES))) \
+	$(BINLN)
+
+$(BUILDDIR)/%.byte.exe: %.ml $(BUILDDIR)/terminal.cma
+	$(OCAMLC) -c -o $(BUILDDIR)/$*.cmo -I $(BUILDDIR) $(OCAMLCFLAGS) $<
+	$(OCAMLC) -o $@ -I $(BUILDDIR) unix.cma terminal.cma $(BUILDDIR)/$*.cmo
+
+ifneq ($(OCAMLOPT),)
+$(BUILDDIR)/%.opt.exe: %.ml $(BUILDDIR)/terminal.cmxa
+	$(OCAMLOPT) -c -o $(BUILDDIR)/$*.cmx -I $(BUILDDIR) $(OCAMLCFLAGS) $<
+	$(OCAMLOPT) -o $@ -I $(BUILDDIR) unix.cmxa terminal.cmxa $(BUILDDIR)/$*.cmx
 endif
 
-all-byte: $(addprefix $(BUILDDIR)/,$(addsuffix .byte.exe,$(ITEMS)))
-all-opt: $(addprefix $(BUILDDIR)/,$(addsuffix .opt.exe,$(ITEMS)))
-
-$(BUILDDIR)/%.byte.exe: $(EXAMPLESPREFIX)%.ml $(BUILDDIR)/terminal.cma
+$(BUILDDIR)/%.byte.exe: basicmagazine/%.ml $(BUILDDIR)/terminal.cma
 	$(OCAMLC) -c -o $(BUILDDIR)/$*.cmo -I $(BUILDDIR) $(OCAMLCFLAGS) $<
-	$(OCAMLC) -o $@ -I $(BUILDDIR) unix.cma $(BUILDDIR)/terminal.cma $(BUILDDIR)/$*.cmo
+	$(OCAMLC) -o $@ -I $(BUILDDIR) unix.cma terminal.cma $(BUILDDIR)/$*.cmo
 
-$(BUILDDIR)/%.opt.exe: $(EXAMPLESPREFIX)%.ml $(BUILDDIR)/terminal.cmxa
+ifneq ($(OCAMLOPT),)
+$(BUILDDIR)/%.opt.exe: basicmagazine/%.ml $(BUILDDIR)/terminal.cmxa
 	$(OCAMLOPT) -c -o $(BUILDDIR)/$*.cmx -I $(BUILDDIR) $(OCAMLCFLAGS) $<
-	$(OCAMLOPT) -o $@ -I $(BUILDDIR) unix.cmxa $(BUILDDIR)/terminal.cmxa $(BUILDDIR)/$*.cmx
+	$(OCAMLOPT) -o $@ -I $(BUILDDIR) unix.cmxa terminal.cmxa $(BUILDDIR)/$*.cmx
+endif
 
 check: all $(TESTS)
 
 interactive: $(BUILDDIR)/terminal.cma
-	$(RLWRAP) ocaml -I $(BUILDDIR) unix.cma terminal.cma
+	$(RLWRAP) ocaml -I $(BUILDDIR) $(OCAMLCFLAGS) unix.cma terminal.cma
 
-$(BUILDDIR) $(BUILDDIR)/terminal.cma $(BUILDDIR)/terminal.cmxa: $(wildcard ../source/terminal*)
+$(BUILDDIR)/terminal.cma $(if $(OCAMLOPT),$(BUILDDIR)/terminal.cmxa): $(wildcard ../source/terminal*)
 	$(MAKE) -C ../source install \
 		BUILDDIR=$(abspath $(TERMINAL_BUILDDIR)) \
 		INSTALLDIR=$(abspath $(BUILDDIR))
@@ -60,7 +68,7 @@ man: ../source/terminal.mli
 	ocamldoc -man -man-mini -d $(TMPDIR)/man3 $<
 	MANPATH=$(TMPDIR) man Terminal
 
-$(BINLN): | $(BUILDDIR)
+$(BINLN):
 	ln -s $(BUILDDIR) $@
 
 clean:
