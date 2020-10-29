@@ -80,22 +80,34 @@ let read_digits = (
 
 let parse_3 (f: int -> int -> int -> char -> 'a) (bad: 'a) (ev: string) = (
 	let length = String.length ev in
-	if length < 5 || ev.[0] <> '\x1b' || ev.[1] <> '[' then bad else
-	let p1s = 2 in
-	let p1e = take_digits ev p1s in
-	if p1e >= length then bad else
-	let p1v = if p1s = p1e then 1 else read_digits ev p1s (p1e - p1s) in
-	if ev.[p1e] <> ';' then bad else
-	let p2s = p1e + 1 in
-	let p2e = take_digits ev p2s in
-	if p2e >= length then bad else
-	let p2v = if p2s = p2e then 1 else read_digits ev p2s (p2e - p2s) in
-	if ev.[p2e] <> ';' then bad else
-	let p3s = p2e + 1 in
-	let p3e = take_digits ev p3s in
-	if p3e <> length - 1 then bad else
-	let p3v = if p3s = p3e then 1 else read_digits ev p3s (p3e - p3s) in
-	f p1v p2v p3v ev.[p3e]
+	if length >= 5 && ev.[0] = '\x1b' && ev.[1] = '[' then (
+		let p1s = 2 in
+		let p1e = take_digits ev p1s in
+		if p1e < length then (
+			let p1v = if p1s = p1e then 1 else read_digits ev p1s (p1e - p1s) in
+			if ev.[p1e] = ';' then (
+				let p2s = p1e + 1 in
+				let p2e = take_digits ev p2s in
+				if p2e < length then (
+					let p2v = if p2s = p2e then 1 else read_digits ev p2s (p2e - p2s) in
+					if ev.[p2e] = ';' then (
+						let p3s = p2e + 1 in
+						let p3e = take_digits ev p3s in
+						if p3e = length - 1 then (
+							let p3v = if p3s = p3e then 1 else read_digits ev p3s (p3e - p3s) in
+							f p1v p2v p3v ev.[p3e]
+						) else
+						bad
+					) else
+					bad
+				) else
+				bad
+			) else
+			bad
+		) else
+		bad
+	) else
+	bad
 );;
 
 let is_resized ev = (
@@ -141,37 +153,43 @@ type shift_state = int;;
 
 let parse_key (f: int -> int -> char -> 'a) (bad: 'a) (ev: string) = (
 	let length = String.length ev in
-	if length < 3 || ev.[0] <> '\x1b' then bad else
-	begin match ev.[1] with
-	| 'O' ->
-		if length <> 3 then bad else
-		f 1 1 ev.[2]
-	| '[' ->
-		let p1s = 2 in
-		let p1e = take_digits ev p1s in
-		if p1e >= length then bad else
-		let k = if p1s = p1e then 1 else read_digits ev p1s (p1e - p1s) in
-		if ev.[p1e] <> ';' then (
-			if p1e <> length - 1 then bad else
-			let c = ev.[p1e] in
-			if c = '~' then f k 1 ev.[p1e] else f 1 k ev.[p1e]
-		) else (
-			let p2s = p1e + 1 in
-			let p2e = take_digits ev p2s in
-			let s = if p2s = p2e then 1 else read_digits ev p2s (p2e - p2s) in
-			if p2e <> length - 1 then (
-				if p2e = length - 2 && ev.[p2e] = 'V' && ev.[p2e + 1] = 'k' then (
-					f k s '@' (* fictitious, k is virtual key code *)
-				) else (
+	if length >= 3 && ev.[0] = '\x1b' then (
+		begin match ev.[1] with
+		| 'O' ->
+			if length = 3 then (
+				f 1 1 ev.[2] (* \eOP *)
+			) else
+			bad
+		| '[' ->
+			let p1s = 2 in
+			let p1e = take_digits ev p1s in
+			if p1e < length then (
+				let k = if p1s = p1e then 1 else read_digits ev p1s (p1e - p1s) in
+				if p1e = length - 1 then (
+					let c = ev.[p1e] in
+					if c = '~' then (
+						f k 1 ev.[p1e] (* \e[3~ *)
+					) else
+					f 1 k ev.[p1e] (* \e[A *)
+				) else if ev.[p1e] =';' then (
+					let p2s = p1e + 1 in
+					let p2e = take_digits ev p2s in
+					let s = if p2s = p2e then 1 else read_digits ev p2s (p2e - p2s) in
+					if p2e = length - 1 then (
+						f k s ev.[p2e] (* \e[3;2~ \e1;2A *)
+					) else if p2e = length - 2 && ev.[p2e] = 'V' && ev.[p2e + 1] = 'k' then (
+						f k s '@' (* fictitious, k is virtual key code *)
+					) else
 					bad
-				)
-			) else (
-				f k s ev.[p2e]
-			)
-		)
-	| _ ->
-		bad
-	end
+				) else
+				bad
+			) else
+			bad
+		| _ ->
+			bad
+		end
+	) else
+	bad
 );;
 
 let is_key = parse_key (fun _ _ _ -> true) false;;
@@ -277,15 +295,17 @@ let button_of_event ev = (
 );;
 
 let shift_of_event ev = (
-	if is_clicked ev then (
+	if not (is_clicked ev) then (
+		(* keyboard event *)
+		parse_key (fun _ s _ -> s - 1) 0 ev
+	) else (
+		(* mouse event *)
 		let m = int_of_char ev.[3] in
 		let result = empty in
-		let result = if m land 4 <> 0 then add shift result else result in
-		let result = if m land 8 <> 0 then add meta result else result in
-		let result = if m land 16 <> 0 then add control result else result in
+		let result = if m land 4 = 0 then result else add shift result in
+		let result = if m land 8 = 0 then result else add meta result in
+		let result = if m land 16 = 0 then result else add control result in
 		result
-	) else (
-		parse_key (fun _ s _ -> s - 1) 0 ev
 	)
 );;
 
@@ -470,15 +490,18 @@ let input_line_utf8 ic = (
 		if buffered_line_length = max_int then (
 			(* current line is continuing... *)
 			let buffered_length = buffered_in ic in
-			if buffered_length > 0 then (
+			if buffered_length <= 0 then (
+				(* empty *)
+				Descr.input_line_utf8 (Unix.descr_of_in_channel ic)
+			) else (
+				(* continuing *)
 				let buffered_s = really_input_string ic buffered_length in
 				let s1 = utf8_of_locale buffered_s in
 				let s2 = Descr.input_line_utf8 (Unix.descr_of_in_channel ic) in
 				s1 ^ s2
-			) else (
-				Descr.input_line_utf8 (Unix.descr_of_in_channel ic)
 			)
 		) else (
+			(* '\n' is found *)
 			assert (buffered_line_length > 0);
 			let line_length = buffered_line_length - 1 in
 			let line_s = really_input_string ic line_length in
