@@ -79,6 +79,7 @@ let read_digits = (
 );;
 
 let parse_3 (f: int -> int -> int -> char -> 'a) (bad: 'a) (ev: string) = (
+	let result = ref bad in (* optimized away *)
 	let length = String.length ev in
 	if length >= 5 && ev.[0] = '\x1b' && ev.[1] = '[' then (
 		let p1s = 2 in
@@ -95,19 +96,14 @@ let parse_3 (f: int -> int -> int -> char -> 'a) (bad: 'a) (ev: string) = (
 						let p3e = take_digits ev p3s in
 						if p3e = length - 1 then (
 							let p3v = if p3s = p3e then 1 else read_digits ev p3s (p3e - p3s) in
-							f p1v p2v p3v ev.[p3e]
-						) else
-						bad
-					) else
-					bad
-				) else
-				bad
-			) else
-			bad
-		) else
-		bad
-	) else
-	bad
+							result := f p1v p2v p3v ev.[p3e]
+						)
+					)
+				)
+			)
+		)
+	);
+	!result
 );;
 
 let is_resized ev = (
@@ -152,14 +148,14 @@ type key = [
 type shift_state = int;;
 
 let parse_key (f: int -> int -> char -> 'a) (bad: 'a) (ev: string) = (
+	let result = ref bad in (* optimized away *)
 	let length = String.length ev in
 	if length >= 3 && ev.[0] = '\x1b' then (
 		begin match ev.[1] with
 		| 'O' ->
 			if length = 3 then (
-				f 1 1 ev.[2] (* \eOP *)
-			) else
-			bad
+				result := f 1 1 ev.[2] (* \eOP *)
+			)
 		| '[' ->
 			let p1s = 2 in
 			let p1e = take_digits ev p1s in
@@ -168,28 +164,25 @@ let parse_key (f: int -> int -> char -> 'a) (bad: 'a) (ev: string) = (
 				if p1e = length - 1 then (
 					let c = ev.[p1e] in
 					if c = '~' then (
-						f k 1 ev.[p1e] (* \e[3~ *)
+						result := f k 1 ev.[p1e] (* \e[3~ *)
 					) else
-					f 1 k ev.[p1e] (* \e[A *)
+					result := f 1 k ev.[p1e] (* \e[A *)
 				) else if ev.[p1e] =';' then (
 					let p2s = p1e + 1 in
 					let p2e = take_digits ev p2s in
 					let s = if p2s = p2e then 1 else read_digits ev p2s (p2e - p2s) in
 					if p2e = length - 1 then (
-						f k s ev.[p2e] (* \e[3;2~ \e1;2A *)
+						result := f k s ev.[p2e] (* \e[3;2~ \e1;2A *)
 					) else if p2e = length - 2 && ev.[p2e] = 'V' && ev.[p2e + 1] = 'k' then (
-						f k s '@' (* fictitious, k is virtual key code *)
-					) else
-					bad
-				) else
-				bad
-			) else
-			bad
+						result := f k s '@' (* fictitious, k is virtual key code *)
+					)
+				)
+			)
 		| _ ->
-			bad
+			()
 		end
-	) else
-	bad
+	);
+	!result
 );;
 
 let is_key = parse_key (fun _ _ _ -> true) false;;
