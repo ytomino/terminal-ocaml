@@ -11,13 +11,11 @@ BINLN=
 else
 BINLN=bin
 endif
-ifneq ($(shell rlwrap --version),)
-RLWRAP=rlwrap
-endif
 endif
 
 OCAMLC=$(PROGRAMPREFIX)ocamlc
 OCAMLOPT=$(OCAMLC:c=opt)
+RLWRAP?=
 
 BUILDSUFFIX=.noindex
 BUILDDIR=$(TARGET)$(BUILDSUFFIX)
