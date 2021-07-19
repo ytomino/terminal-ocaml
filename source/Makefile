@@ -32,7 +32,7 @@ LIBNAME=terminal
 STUBLIBNAME=ml$(LIBNAME)
 
 OCAMLCFLAGS=-w +a
-CFLAGS=-O2 -Wall -Wextra -Wno-unused-result
+CFLAGS=$(OCAMLC_CFLAGS) -Wall -Wextra -Wno-unused-result
 
 CCLIB=
 LDFLAGS=
@@ -58,6 +58,10 @@ COBJ=$(addprefix $(BUILDDIR)/,$(addsuffix .o,$(basename $(CSRC))))
 CDLL=$(addprefix $(BUILDDIR)/dll,$(addsuffix $(EXT_DLL),$(STUBLIBNAME)))
 CSLL=$(addprefix $(BUILDDIR)/lib,$(addsuffix .a,$(STUBLIBNAME)))
 
+ifneq ($(filter $(SHAREDLIB_CFLAGS),$(CFLAGS)),$(SHAREDLIB_CFLAGS))
+CFLAGS+=$(SHAREDLIB_CFLAGS)
+endif
+
 .PHONY: all clean install uninstall
 
 ifneq ($(OCAMLOPT),)
@@ -76,7 +80,7 @@ $(BUILDDIR)/%.cmx: %.ml
 	$(OCAMLOPT) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -o $@ $<
 
 $(BUILDDIR)/%.o: %.c
-	$(CC) -c -isystem "$(OCAMLLIBDIR)" $(CFLAGS) $(SHAREDLIB_CFLAGS) -o $@ $<
+	$(CC) -c -isystem "$(OCAMLLIBDIR)" $(CFLAGS) -o $@ $<
 
 $(BUILDDIR)/$(LIBNAME).cma: $(MLCMI) $(MLCMO) $(CDLL)
 	$(OCAMLC) -a -o $@ $(MLCMO) $(DLLIB) $(CCLIB)
