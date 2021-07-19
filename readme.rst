@@ -7,6 +7,12 @@ What's this?
 Objective-Caml library to manipulate a terminal.
 This supports Windows and POSIX.
 
+Prerequisites
+-------------
+
+OCaml >= 4.08
+ https://ocaml.org/
+
 How to make
 -----------
 
