@@ -70,7 +70,7 @@
 3140 COLOR 1:LOCATE 38,Y1:PRINT PB$(B1);
 3145 'COLOR 1:LOCATE 38,Y1:PRINT CHR$(8)+CHR$(8)+PB$(B1);    :FOR PC-88
 3150 COLOR 2:LOCATE  1,Y2:PRINT PB$(B2);
-3160 COLOR 7:LOCATE BX,BY:PRINT "⚫"
+3160 COLOR 7:LOCATE BX,BY:PRINT "⚫︎"
 3200 '
 3210 COLOR 4:LOCATE 15, 8:PRINT "========"
 3220         LOCATE 15, 9:PRINT " PLAY ! "
@@ -198,7 +198,7 @@
 8055 IF BX=37 AND BY=1 THEN IF (Y1<=BY AND BY<=Y1+B1) THEN BXV=-BXV:BX=37:BYV=-BYV:BY=1:BEEP 1:GOTO 8080
 8060 IF BX=0 OR BX=39 THEN MS=1
 8070 IF BY=0 OR BY=23 THEN BYV=-BYV:BY=BY+BYV:BEEP 1
-8080 COLOR 7:LOCATE BX,BY:PRINT "⚫"
+8080 COLOR 7:LOCATE BX,BY:PRINT "⚫︎"
 8090 BEEP 0
 8095 FOR T=0 TO TT:NEXT
 8100 RETURN
@@ -254,7 +254,7 @@ let sgn (x: int) = if x > 0 then +1 else if x < 0 then -1 else 0;;
 
 let hbar = "‒";;
 let fill = "█";;
-let ball = "⚫";;
+let ball = "⚫︎";;
 
 let rec run (stdout, stdin: Unix.file_descr * Unix.file_descr): unit = (
 	let cls () = Terminal.Descr.clear_screen stdout () in
