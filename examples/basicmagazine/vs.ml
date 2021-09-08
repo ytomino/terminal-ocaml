@@ -490,39 +490,35 @@ let rec run (stdout, stdin: Unix.file_descr * Unix.file_descr): unit = (
 		| _ -> assert false
 	) and gosub_7100 () = (
 		(* COMPUTER RANDER *)
-		p2_control := 0; p2_fire := false;
 		let ran = Random.float 1.0 in
-		if ran > 0.36 && !byv = -1 then p2_control := -1 else p2_control := +1;
-		if ran > 0.5 then p2_fire := true
+		p2_control := if ran > 0.36 && !byv = -1 then -1 else +1;
+		p2_fire := ran > 0.5
 	) and gosub_7300 () = (
 		(* COMPUTER NOMAC *)
-		p2_control := 0; p2_fire := false;
 		let ran = Random.float 1.0 in
-		if !byv = -1 then p2_control := -1 else p2_control := +1;
-		if ran > 0.6 && !y1 < !by && !by < !y1 + !b1 then p2_fire := true
+		p2_control := if !byv = -1 then -1 else +1;
+		p2_fire := ran > 0.6 && !y1 < !by && !by < !y1 + !b1
 	) and gosub_7500 () = (
 		(* COMPUTER WINNIX *)
-		p2_control := 0; p2_fire := false;
 		let ran = Random.int !b2 + 1 in
-		if sgn (2 * !by - (2 * !y2 + ran)) = -1 then p2_control := -1 else p2_control := +1;
-		if !y1 < !by && !by < !y1 + !b1 then p2_fire := true;
+		p2_control := if sgn (2 * !by - (2 * !y2 + ran)) = -1 then -1 else +1;
+		p2_fire := !y1 < !by && !by < !y1 + !b1;
 		let ran = Random.float 1.0 in
-		if ran > 0.9 && !p2_control = -1 then p2_control := 0;
-		if ran > 0.9 && !p2_control = +1 then p2_control := 0
+		if ran > 0.9 then p2_control := 0
 	) and gosub_7700 () = (
 		(* COMPUTER PRO+ *)
-		p2_control := 0; p2_fire := false; (* I0=ｼﾀ:I1=ｳｴ:I2=ﾚｰｻﾞｰ *)
+		(* I0=ｼﾀ:I1=ｳｴ:I2=ﾚｰｻﾞｰ *)
 		if !bx < 5 || (!bx < 20 && !bxv < 0) then (
 			let ct = !y2 + !b2 / 2 - !by in (* ﾎﾞｰﾙｶﾞｷﾃｲﾙ *)
-			if ct > 0 then p2_control := -1 else p2_control := +1;
-			if Random.float 1.0 > 0.98 then p2_fire := true
+			p2_control := if ct > 0 then -1 else +1;
+			p2_fire := Random.float 1.0 > 0.98
 		) else (
-			if !bx > 20 || Random.float 1.0 > 0.8 then p2_fire := true;
-			if not (!lx1 > 20) then (
-				if !y2 <= !ly1 && !y2 + !b2 >= !ly1 then (
-					if !ly1 < 12 then p2_control := +1 else p2_control := -1
-				)
-			);
+			p2_control :=
+				if not (!lx1 > 20) && !y2 <= !ly1 && !y2 + !b2 >= !ly1 then (
+					if !ly1 < 12 then +1 else -1
+				) else
+				0;
+			p2_fire := !bx > 20 || Random.float 1.0 > 0.8;
 			if Random.float 1.0 > 0.98 then p2_control := +1;
 			if Random.float 1.0 > 0.98 then p2_control := -1;
 		)
