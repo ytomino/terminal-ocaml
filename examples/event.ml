@@ -18,7 +18,7 @@ Terminal.Descr.mode Unix.stdin ~echo:false ~canonical:false ~mouse (fun () ->
 				write_string Unix.stdout "*"
 			);
 			Terminal.Descr.move Unix.stdout !dx !dy;
-			Unix.sleep 1;
+			Unix.sleep 1
 		) else (
 			let ev = Terminal.Descr.input_event Unix.stdin in
 			let seq = Terminal.escape_sequence_of_event ev in
@@ -26,16 +26,16 @@ Terminal.Descr.mode Unix.stdin ~echo:false ~canonical:false ~mouse (fun () ->
 			if Terminal.is_key ev || Terminal.is_clicked ev then (
 				let ss = Terminal.shift_of_event ev in
 				if Terminal.mem Terminal.shift ss then (
-					desc := !desc ^ "shift+";
+					desc := !desc ^ "shift+"
 				);
 				if Terminal.mem Terminal.meta ss then (
-					desc := !desc ^ "meta+";
+					desc := !desc ^ "meta+"
 				);
 				if Terminal.mem Terminal.control ss then (
-					desc := !desc ^ "control+";
+					desc := !desc ^ "control+"
 				);
 				if Terminal.mem Terminal.alt ss then (
-					desc := !desc ^ "alt+";
+					desc := !desc ^ "alt+"
 				)
 			);
 			if Terminal.is_key ev then (
@@ -128,7 +128,7 @@ Terminal.Descr.mode Unix.stdin ~echo:false ~canonical:false ~mouse (fun () ->
 			Terminal.Descr.save Unix.stdout (fun () ->
 				Terminal.Descr.color Unix.stdout ~foreground:Terminal.red ();
 				Terminal.Descr.set_position Unix.stdout 0 0;
-				write_string Unix.stdout ("{" ^ String.escaped seq ^ "}" ^ !desc ^ " ");
+				write_string Unix.stdout ("{" ^ String.escaped seq ^ "}" ^ !desc ^ " ")
 			)
 		)
 	done

@@ -63,7 +63,7 @@ Terminal.title filename (fun () ->
 					if !p + !height <= line_count then (
 						Terminal.color stdout ~reverse:true ();
 						output_string stdout "more...";
-						Terminal.color stdout ~reset:true ();
+						Terminal.color stdout ~reset:true ()
 					);
 					flush stdout;
 					let ev = Terminal.Descr.input_event (Unix.stdin) in

@@ -431,7 +431,7 @@ let rec run (stdout, stdin: Unix.file_descr * Unix.file_descr): unit = (
 		);
 		if !p1_fire || !l1 <> -1 then (
 			if !l1 = -1 then (
-				l1 := 47; lx1 :=37; ly1 := !y1 + !b1 / 2;
+				l1 := 47; lx1 :=37; ly1 := !y1 + !b1 / 2
 			);
 			color 5;
 			if !lx1 >= 0 then (
@@ -520,7 +520,7 @@ let rec run (stdout, stdin: Unix.file_descr * Unix.file_descr): unit = (
 				0;
 			p2_fire := !bx > 20 || Random.float 1.0 > 0.8;
 			if Random.float 1.0 > 0.98 then p2_control := +1;
-			if Random.float 1.0 > 0.98 then p2_control := -1;
+			if Random.float 1.0 > 0.98 then p2_control := -1
 		)
 	) and gosub_8000 () = (
 		(* BALL *)
@@ -547,7 +547,7 @@ let rec run (stdout, stdin: Unix.file_descr * Unix.file_descr): unit = (
 		);
 		color 7; locate !bx !by; print ball;
 		beep 0;
-		wait tt;
+		wait tt
 	) and gosub_9000 () = (
 		(* POINT *)
 		for t = 0 to 50 do beep 1; wait 5; beep 0; done;
