@@ -65,6 +65,10 @@ ifneq ($(filter $(SHAREDLIB_CFLAGS),$(OCAMLC_CFLAGS)),$(strip $(SHAREDLIB_CFLAGS
 OCAMLC_CFLAGS+=$(SHAREDLIB_CFLAGS)
 endif
 
+ifneq ($(filter $(LDFLAGS),$(MKDLL)),$(strip $(LDFLAGS)))
+MKDLL+=$(LDFLAGS)
+endif
+
 .PHONY: all clean install uninstall
 
 ifneq ($(OCAMLOPT),)
@@ -93,7 +97,7 @@ $(BUILDDIR)/$(LIBNAME).cmxa: $(MLCMI) $(MLCMX) $(CSLL)
 
 ifneq ($(STUBLIBNAME),)
 $(BUILDDIR)/dll$(STUBLIBNAME)$(EXT_DLL): $(COBJ)
-	$(MKDLL) -o $@ $< $(LDFLAGS)
+	$(MKDLL) -o $@ $<
 
 ifneq ($(OCAMLOPT),)
 $(BUILDDIR)/lib$(STUBLIBNAME).a: $(COBJ)
