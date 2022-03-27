@@ -24,20 +24,20 @@ DLLPREFIX=$(patsubst $(addsuffix /,$(DESTDIR))%,%,$(INSTALLDIR))/stublibs
 ifeq ($(DLLPREFIX),$(OCAMLLIBDIR)/stublibs)
 DLLIB=$(addprefix -dllib -l,$(STUBLIBNAME))
 else
-DLLIB=$(addprefix -dllib $(DLLPREFIX)/dll,$(addsuffix $(EXT_DLL),$(STUBLIBNAME)))
+DLLIB=$(patsubst %,-dllib $(DLLPREFIX)/dll%$(EXT_DLL),$(STUBLIBNAME))
 endif
 SLLIB=$(addprefix -cclib -l,$(STUBLIBNAME))
 
-MLCMO=$(addprefix $(BUILDDIR)/,$(addsuffix .cmo,$(basename $(MLSRC))))
-MLCMOB=$(addprefix $(BUILDDIR)/,$(addsuffix .cmo,$(basename $(MLINIT))))
-MLCMX=$(addprefix $(BUILDDIR)/,$(addsuffix .cmx,$(basename $(MLSRC))))
-MLOBJ=$(addprefix $(BUILDDIR)/,$(addsuffix .o,$(basename $(MLSRC))))
-MLCMI=$(addprefix $(BUILDDIR)/,$(addsuffix .cmi,$(sort $(basename $(MLI) $(MLSRC)))))
-MLCMIB=$(addprefix $(BUILDDIR)/,$(addsuffix .cmi,$(basename $(MLINIT))))
+MLCMO=$(patsubst %,$(BUILDDIR)/%.cmo,$(basename $(MLSRC)))
+MLCMOB=$(patsubst %,$(BUILDDIR)/%.cmo,$(basename $(MLINIT)))
+MLCMX=$(patsubst %,$(BUILDDIR)/%.cmx,$(basename $(MLSRC)))
+MLOBJ=$(patsubst %,$(BUILDDIR)/%.o,$(basename $(MLSRC)))
+MLCMI=$(patsubst %,$(BUILDDIR)/%.cmi,$(sort $(basename $(MLI) $(MLSRC))))
+MLCMIB=$(patsubst %,$(BUILDDIR)/%.cmi,$(basename $(MLINIT)))
 
-COBJ=$(addprefix $(BUILDDIR)/,$(addsuffix .o,$(basename $(CSRC))))
-CDLL=$(addprefix $(BUILDDIR)/dll,$(addsuffix $(EXT_DLL),$(STUBLIBNAME)))
-CSLL=$(addprefix $(BUILDDIR)/lib,$(addsuffix .a,$(STUBLIBNAME)))
+COBJ=$(patsubst %,$(BUILDDIR)/%.o,$(basename $(CSRC)))
+CDLL=$(patsubst %,$(BUILDDIR)/dll%$(EXT_DLL),$(STUBLIBNAME))
+CSLL=$(patsubst %,$(BUILDDIR)/lib%.a,$(STUBLIBNAME))
 
 OCAMLC_CFLAGS_ALL=$(strip \
 	$(OCAMLC_CFLAGS) \
