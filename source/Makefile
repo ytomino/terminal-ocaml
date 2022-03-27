@@ -36,6 +36,7 @@ CFLAGS=-Wall -Wextra -Wno-unused-result
 
 CCLIB=
 LDFLAGS=
+LDLIB=
 
 $(BUILDDIR)/terminal.cmo: $(BUILDDIR)/terminal.cmi
 $(BUILDDIR)/terminal.cmx: $(BUILDDIR)/terminal.cmi
@@ -97,7 +98,7 @@ $(BUILDDIR)/$(LIBNAME).cmxa: $(MLCMI) $(MLCMX) $(CSLL)
 
 ifneq ($(STUBLIBNAME),)
 $(BUILDDIR)/dll$(STUBLIBNAME)$(EXT_DLL): $(COBJ)
-	$(MKDLL) -o $@ $<
+	$(MKDLL) -o $@ $< $(LDLIB)
 
 ifneq ($(OCAMLOPT),)
 $(BUILDDIR)/lib$(STUBLIBNAME).a: $(COBJ)
