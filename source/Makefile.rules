@@ -1,20 +1,19 @@
 .PHONY: all clean install uninstall
 
 all: \
-	$(BUILDDIR) \
 	$(if $(OCAMLC),$(BUILDDIR)/$(LIBNAME).cma) \
 	$(if $(OCAMLOPT),$(BUILDDIR)/$(LIBNAME).cmxa)
 
-$(BUILDDIR)/%.cmi: %.mli
+$(BUILDDIR)/%.cmi: %.mli | $(BUILDDIR)
 	$(or $(OCAMLC),$(OCAMLOPT)) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -o $@ $<
 
-$(BUILDDIR)/%.cmo: %.ml
+$(BUILDDIR)/%.cmo: %.ml | $(BUILDDIR)
 	$(OCAMLC) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -o $@ $<
 
-$(BUILDDIR)/%.cmx: %.ml
+$(BUILDDIR)/%.cmx: %.ml | $(BUILDDIR)
 	$(OCAMLOPT) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -o $@ $<
 
-$(BUILDDIR)/%.o: %.c
+$(BUILDDIR)/%.o: %.c | $(BUILDDIR)
 	$(CC) -c -isystem "$(OCAMLLIBDIR)" $(OCAMLC_CFLAGS_ALL) -o $@ $<
 
 $(BUILDDIR)/$(LIBNAME).cma: $(MLCMI) $(MLCMIB) $(MLCMO) $(MLCMOB) $(CDLL)
