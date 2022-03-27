@@ -1,13 +1,12 @@
 .PHONY: all clean install uninstall
 
-ifneq ($(OCAMLOPT),)
-all: $(BUILDDIR) $(BUILDDIR)/$(LIBNAME).cma $(BUILDDIR)/$(LIBNAME).cmxa
-else
-all: $(BUILDDIR) $(BUILDDIR)/$(LIBNAME).cma
-endif
+all: \
+	$(BUILDDIR) \
+	$(if $(OCAMLC),$(BUILDDIR)/$(LIBNAME).cma) \
+	$(if $(OCAMLOPT),$(BUILDDIR)/$(LIBNAME).cmxa)
 
 $(BUILDDIR)/%.cmi: %.mli
-	$(OCAMLC) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -o $@ $<
+	$(or $(OCAMLC),$(OCAMLOPT)) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -o $@ $<
 
 $(BUILDDIR)/%.cmo: %.ml
 	$(OCAMLC) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -o $@ $<
@@ -18,8 +17,8 @@ $(BUILDDIR)/%.cmx: %.ml
 $(BUILDDIR)/%.o: %.c
 	$(CC) -c -isystem "$(OCAMLLIBDIR)" $(OCAMLC_CFLAGS_ALL) -o $@ $<
 
-$(BUILDDIR)/$(LIBNAME).cma: $(MLCMI) $(MLCMO) $(CDLL)
-	$(OCAMLC) -a -o $@ $(MLCMO) $(DLLIB) $(CCLIB)
+$(BUILDDIR)/$(LIBNAME).cma: $(MLCMI) $(MLCMIB) $(MLCMO) $(MLCMOB) $(CDLL)
+	$(OCAMLC) -a -o $@ $(MLCMO) $(MLCMOB) $(DLLIB) $(CCLIB)
 
 $(BUILDDIR)/$(LIBNAME).cmxa: $(MLCMI) $(MLCMX) $(CSLL)
 	$(OCAMLOPT) -a -o $@ $(MLCMX) $(SLLIB) $(CCLIB)
@@ -28,10 +27,8 @@ ifneq ($(STUBLIBNAME),)
 $(BUILDDIR)/dll$(STUBLIBNAME)$(EXT_DLL): $(COBJ)
 	$(MKDLL_ALL) -o $@ $< $(LDLIB)
 
-ifneq ($(OCAMLOPT),)
 $(BUILDDIR)/lib$(STUBLIBNAME).a: $(COBJ)
 	$(ARCMD) rcs $@ $<
-endif
 endif
 
 $(BUILDDIR):
@@ -41,7 +38,7 @@ clean:
 	-rm $(BUILDDIR)/$(LIBNAME).cma
 	-rm $(BUILDDIR)/$(LIBNAME).a
 	-rm $(BUILDDIR)/$(LIBNAME).cmxa
-	-rm $(MLCMI) $(MLCMO) $(MLCMX) $(MLOBJ)
+	-rm $(MLCMI) $(MLCMIB) $(MLCMO) $(MLCMOB) $(MLCMX) $(MLOBJ)
 ifneq ($(STUBLIBNAME),)
 	-rm $(BUILDDIR)/dll$(STUBLIBNAME)$(EXT_DLL)
 	-rm $(BUILDDIR)/lib$(STUBLIBNAME).a
@@ -52,10 +49,15 @@ endif
 install: all
 	-mkdir -p $(INSTALLDIR)
 	cp $(MLCMI) $(INSTALLDIR)
+ifneq ($(OCAMLC),)
+ifneq ($(MLCMIB),)
+	cp $(MLCMIB) $(INSTALLDIR)
+endif
 	cp $(BUILDDIR)/$(LIBNAME).cma $(INSTALLDIR)
 ifneq ($(STUBLIBNAME),)
 	-mkdir $(INSTALLDIR)/stublibs
 	cp $(BUILDDIR)/dll$(STUBLIBNAME)$(EXT_DLL) $(INSTALLDIR)/stublibs
+endif
 endif
 ifneq ($(OCAMLOPT),)
 	cp $(MLCMX) $(INSTALLDIR)
@@ -68,9 +70,14 @@ endif
 
 uninstall:
 	-rm $(addprefix $(INSTALLDIR)/,$(notdir $(MLCMI)))
+ifneq ($(OCAMLC),)
+ifneq ($(MLCMIB),)
+	-rm $(addprefix $(INSTALLDIR)/,$(notdir $(MLCMIB)))
+endif
 	-rm $(INSTALLDIR)/$(LIBNAME).cma
 ifneq ($(STUBLIBNAME),)
 	-rm $(INSTALLDIR)/stublibs/dll$(STUBLIBNAME)$(EXT_DLL)
+endif
 endif
 ifneq ($(OCAMLOPT),)
 	-rm $(addprefix $(INSTALLDIR)/,$(notdir $(MLCMX)))

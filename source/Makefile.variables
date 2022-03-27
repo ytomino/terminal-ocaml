@@ -8,9 +8,9 @@ PROGRAMPREFIX=
 endif
 
 OCAMLC=$(PROGRAMPREFIX)ocamlc
-OCAMLOPT=$(OCAMLC:c=opt)
+OCAMLOPT=$(if $(OCAMLC),$(OCAMLC:c=opt),$(PROGRAMPREFIX)ocamlopt)
 
-OCAMLLIBDIR:=$(shell $(OCAMLC) -where)
+OCAMLLIBDIR:=$(shell $(or $(OCAMLC),$(OCAMLOPT)) -where)
 include $(OCAMLLIBDIR)/Makefile.config
 
 PREFIX=$(abspath $(OCAMLLIBDIR)/../..)
@@ -28,10 +28,12 @@ DLLIB=$(addprefix -dllib $(DLLPREFIX)/dll,$(addsuffix $(EXT_DLL),$(STUBLIBNAME))
 endif
 SLLIB=$(addprefix -cclib -l,$(STUBLIBNAME))
 
-MLCMO=$(addprefix $(BUILDDIR)/,$(addsuffix .cmo,$(basename $(MLSRC) $(MLINIT))))
+MLCMO=$(addprefix $(BUILDDIR)/,$(addsuffix .cmo,$(basename $(MLSRC))))
+MLCMOB=$(addprefix $(BUILDDIR)/,$(addsuffix .cmo,$(basename $(MLINIT))))
 MLCMX=$(addprefix $(BUILDDIR)/,$(addsuffix .cmx,$(basename $(MLSRC))))
 MLOBJ=$(addprefix $(BUILDDIR)/,$(addsuffix .o,$(basename $(MLSRC))))
-MLCMI=$(addprefix $(BUILDDIR)/,$(addsuffix .cmi,$(sort $(basename $(MLI) $(MLSRC) $(MLINIT)))))
+MLCMI=$(addprefix $(BUILDDIR)/,$(addsuffix .cmi,$(sort $(basename $(MLI) $(MLSRC)))))
+MLCMIB=$(addprefix $(BUILDDIR)/,$(addsuffix .cmi,$(basename $(MLINIT))))
 
 COBJ=$(addprefix $(BUILDDIR)/,$(addsuffix .o,$(basename $(CSRC))))
 CDLL=$(addprefix $(BUILDDIR)/dll,$(addsuffix $(EXT_DLL),$(STUBLIBNAME)))

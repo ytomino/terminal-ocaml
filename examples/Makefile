@@ -14,7 +14,7 @@ endif
 endif
 
 OCAMLC=$(PROGRAMPREFIX)ocamlc
-OCAMLOPT=$(OCAMLC:c=opt)
+OCAMLOPT=$(if $(OCAMLC),$(OCAMLC:c=opt),$(PROGRAMPREFIX)ocamlopt)
 RLWRAP?=
 
 BUILDSUFFIX=.noindex
@@ -27,7 +27,7 @@ EXAMPLES=$(EXAMPLES1) vs
 .PHONY: all check interactive man clean
 
 all: \
-	$(patsubst %,$(BUILDDIR)/%.byte.exe,$(EXAMPLES)) \
+	$(if $(OCAMLC),$(patsubst %,$(BUILDDIR)/%.byte.exe,$(EXAMPLES))) \
 	$(if $(OCAMLOPT),$(patsubst %,$(BUILDDIR)/%.opt.exe,$(EXAMPLES))) \
 	$(BINLN)
 
@@ -35,28 +35,25 @@ $(BUILDDIR)/%.byte.exe: %.ml $(BUILDDIR)/terminal.cma
 	$(OCAMLC) -c -o $(BUILDDIR)/$*.cmo -I $(BUILDDIR) $(OCAMLCFLAGS) $<
 	$(OCAMLC) -o $@ -I $(BUILDDIR) unix.cma terminal.cma $(BUILDDIR)/$*.cmo
 
-ifneq ($(OCAMLOPT),)
 $(BUILDDIR)/%.opt.exe: %.ml $(BUILDDIR)/terminal.cmxa
 	$(OCAMLOPT) -c -o $(BUILDDIR)/$*.cmx -I $(BUILDDIR) $(OCAMLCFLAGS) $<
 	$(OCAMLOPT) -o $@ -I $(BUILDDIR) unix.cmxa terminal.cmxa $(BUILDDIR)/$*.cmx
-endif
 
 $(BUILDDIR)/%.byte.exe: basicmagazine/%.ml $(BUILDDIR)/terminal.cma
 	$(OCAMLC) -c -o $(BUILDDIR)/$*.cmo -I $(BUILDDIR) $(OCAMLCFLAGS) $<
 	$(OCAMLC) -o $@ -I $(BUILDDIR) unix.cma terminal.cma $(BUILDDIR)/$*.cmo
 
-ifneq ($(OCAMLOPT),)
 $(BUILDDIR)/%.opt.exe: basicmagazine/%.ml $(BUILDDIR)/terminal.cmxa
 	$(OCAMLOPT) -c -o $(BUILDDIR)/$*.cmx -I $(BUILDDIR) $(OCAMLCFLAGS) $<
 	$(OCAMLOPT) -o $@ -I $(BUILDDIR) unix.cmxa terminal.cmxa $(BUILDDIR)/$*.cmx
-endif
 
 check: all $(TESTS)
 
 interactive: $(BUILDDIR)/terminal.cma
 	$(RLWRAP) ocaml -I $(BUILDDIR) $(OCAMLCFLAGS) unix.cma terminal.cma
 
-$(BUILDDIR)/terminal.cma $(if $(OCAMLOPT),$(BUILDDIR)/terminal.cmxa): $(wildcard ../source/terminal*)
+$(BUILDDIR)/terminal.cma $(BUILDDIR)/terminal.cmxa&: \
+		$(wildcard ../source/terminal*)
 	$(MAKE) -C ../source install \
 		BUILDDIR=$(abspath $(TERMINAL_BUILDDIR)) \
 		INSTALLDIR=$(abspath $(BUILDDIR))
