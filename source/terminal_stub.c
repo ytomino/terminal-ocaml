@@ -1018,8 +1018,9 @@ CAMLprim value mlterminal_d_screen(
 	bool pred_cursor_visible = current_cursor_visible;
 	bool pred_wrap = current_wrap;
 	write(f, "\x1b""7\x1b[?47h", 8); /* enter_ca_mode */
+	bool size_is_block = Is_block(size);
 	int old_w, old_h;
-	if(Is_block(size)){
+	if(size_is_block){
 		install_sigwinch();
 		value s = Field(size, 0);
 		get_size(f, &old_w, &old_h);
@@ -1042,7 +1043,7 @@ CAMLprim value mlterminal_d_screen(
 	if(current_cursor_visible != pred_cursor_visible){
 		set_cursor_visible(f, pred_cursor_visible);
 	}
-	if(Is_block(size)){
+	if(size_is_block){
 		set_size(f, old_w, old_h);
 	}
 	write(f, "\x1b""[2J\x1b[?47l\x1b""8", 12); /* exit_ca_mode */
