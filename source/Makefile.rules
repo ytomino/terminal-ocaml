@@ -15,11 +15,18 @@ $(filter-out $(MLONLY_MLCMX),$(MLCMX)): $(BUILDDIR)/%.cmx: \
 		%.ml $(BUILDDIR)/%.cmi
 	$(OCAMLOPT) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -o $@ $<
 
+ifneq ($(and $(OCAMLC),$(OCAMLOPT)),)
+$(BUILDDIR)/%.cmo $(BUILDDIR)/%.cmx $(BUILDDIR)/%.cmi&: %.ml | $(BUILDDIR)
+	$(OCAMLC) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -w -70 -o $(basename $@).cmo $<
+	$(if $(filter $(MLONLY_MODULES),$(basename $<)), \
+		$(OCAMLOPT) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -w -70 -o $(basename $@).cmx $<)
+else
 $(BUILDDIR)/%.cmo $(BUILDDIR)/%.cmi&:: %.ml | $(BUILDDIR)
 	$(OCAMLC) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -w -70 -o $(basename $@).cmo $<
 
 $(BUILDDIR)/%.cmx $(BUILDDIR)/%.cmi&:: %.ml | $(BUILDDIR)
 	$(OCAMLOPT) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -w -70 -o $(basename $@).cmx $<
+endif
 
 $(BUILDDIR)/%.o: %.c | $(BUILDDIR)
 	$(CC) -c -isystem "$(OCAMLLIBDIR)" $(OCAMLC_CFLAGS_ALL) -o $@ $<
