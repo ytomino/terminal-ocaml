@@ -1,0 +1,45 @@
+HOST:=$(shell $(CC) -dumpmachine)
+TARGET=$(HOST)
+
+ifneq ($(TARGET),$(HOST))
+PROGRAMPREFIX=$(TARGET)-
+else
+PROGRAMPREFIX=
+endif
+
+OCAMLC=$(PROGRAMPREFIX)ocamlc
+OCAMLOPT=$(OCAMLC:c=opt)
+
+OCAMLLIBDIR:=$(shell $(OCAMLC) -where)
+include $(OCAMLLIBDIR)/Makefile.config
+
+PREFIX=$(abspath $(OCAMLLIBDIR)/../..)
+DESTDIR=
+INSTALLDIR=$(addsuffix /,$(DESTDIR))$(PREFIX)/lib/ocaml
+
+BUILDSUFFIX=.noindex
+BUILDDIR=$(TARGET)$(BUILDSUFFIX)
+
+DLLPREFIX=$(patsubst $(addsuffix /,$(DESTDIR))%,%,$(INSTALLDIR))/stublibs
+ifeq ($(DLLPREFIX),$(OCAMLLIBDIR)/stublibs)
+DLLIB=$(addprefix -dllib -l,$(STUBLIBNAME))
+else
+DLLIB=$(addprefix -dllib $(DLLPREFIX)/dll,$(addsuffix $(EXT_DLL),$(STUBLIBNAME)))
+endif
+SLLIB=$(addprefix -cclib -l,$(STUBLIBNAME))
+
+MLCMO=$(addprefix $(BUILDDIR)/,$(addsuffix .cmo,$(basename $(MLSRC) $(MLINIT))))
+MLCMX=$(addprefix $(BUILDDIR)/,$(addsuffix .cmx,$(basename $(MLSRC))))
+MLOBJ=$(addprefix $(BUILDDIR)/,$(addsuffix .o,$(basename $(MLSRC))))
+MLCMI=$(addprefix $(BUILDDIR)/,$(addsuffix .cmi,$(sort $(basename $(MLI) $(MLSRC) $(MLINIT)))))
+
+COBJ=$(addprefix $(BUILDDIR)/,$(addsuffix .o,$(basename $(CSRC))))
+CDLL=$(addprefix $(BUILDDIR)/dll,$(addsuffix $(EXT_DLL),$(STUBLIBNAME)))
+CSLL=$(addprefix $(BUILDDIR)/lib,$(addsuffix .a,$(STUBLIBNAME)))
+
+OCAMLC_CFLAGS_ALL=$(strip \
+	$(OCAMLC_CFLAGS) \
+	$(if $(filter-out $(OCAMLC_CFLAGS),$(CFLAGS)),$(CFLAGS)) \
+	$(if $(filter-out $(OCAMLC_CFLAGS),$(SHAREDLIB_CFLAGS)),$(SHAREDLIB_CFLAGS)))
+
+MKDLL_ALL=$(strip $(MKDLL) $(if $(filter-out $(MKDLL),$(LDFLAGS)),$(LDFLAGS)))
