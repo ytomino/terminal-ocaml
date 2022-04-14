@@ -2,15 +2,15 @@ HOST:=$(shell $(CC) -dumpmachine)
 TARGET=$(HOST)
 
 ifneq ($(HOST),$(TARGET))
-PROGRAMPREFIX=$(TARGET)-
-BINLN=
+ PROGRAMPREFIX=$(TARGET)-
+ BINLN=
 else
-PROGRAMPREFIX=
-ifneq ($(findstring mingw,$(HOST))$(findstring msys,$(HOST)),)
-BINLN=
-else
-BINLN=bin
-endif
+ PROGRAMPREFIX=
+ ifneq ($(findstring mingw,$(HOST))$(findstring msys,$(HOST)),)
+  BINLN=
+ else
+  BINLN=bin
+ endif
 endif
 
 OCAMLC=$(PROGRAMPREFIX)ocamlc
