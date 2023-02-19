@@ -39,7 +39,7 @@ typedef HANDLE handlt_t;
 static HANDLE handle_of_descr(value x)
 {
 	if(Descr_kind_val(x) != KIND_HANDLE){
-		failwith("mlterminal(the channel is not a file handle)");
+		caml_failwith("mlterminal(the channel is not a file handle)");
 	}
 	return Handle_val(x);
 }
@@ -244,7 +244,7 @@ static void get_size(int fd, int *width, int *height)
 	struct winsize win;
 	failed = ioctl(fd, TIOCGWINSZ, &win) < 0;
 	if(failed){
-		failwith("mlterminal(ioctl, failed to get size)");
+		caml_failwith("mlterminal(ioctl, failed to get size)");
 	}
 	*width = win.ws_col;
 	*height = win.ws_row;
@@ -341,7 +341,7 @@ static bool is_empty(int fd)
 	FD_ZERO(&fds_w);
 	FD_ZERO(&fds_e);
 	if(select(fd + 1, &fds_r, &fds_w, &fds_e, &zero_time) < 0){
-		failwith("mlterminal(select, failed to check for reading)");
+		caml_failwith("mlterminal(select, failed to check for reading)");
 	}else{
 		result = !FD_ISSET(fd, &fds_r);
 	}
@@ -401,7 +401,7 @@ CAMLprim value mlterminal_title(value title, value closure)
 	free(old_title);
 #else
 	if(!isatty(stdout)){
-		failwith("mlterminal_title(stdout is not associated to terminal)");
+		caml_failwith("mlterminal_title(stdout is not associated to terminal)");
 	}
 	/* save */
 	write(stdout, "\x1b[22;2t", 7);
@@ -616,7 +616,7 @@ CAMLprim value mlterminal_d_position(value out)
 	y = info.dwCursorPosition.Y;
 #else
 	if(!isatty(stdin)){
-		failwith("mlterminal_d_position(stdin is not associated to terminal)");
+		caml_failwith("mlterminal_d_position(stdin is not associated to terminal)");
 	}
 	struct termios old_settings, new_settings;
 	tcgetattr(stdin, &old_settings);
@@ -640,7 +640,7 @@ CAMLprim value mlterminal_d_position(value out)
 	}
 	tcsetattr(stdin, TCSANOW, &old_settings);
 	if(sscanf(buf, "\x1b[%d;%dR", &y, &x) != 2){
-		failwith("mlterminal_d_position");
+		caml_failwith("mlterminal_d_position");
 	}
 	--x;
 	--y;
@@ -1079,7 +1079,7 @@ CAMLprim value mlterminal_d_output_substring_utf8(
 	free(wide_s);
 	if(failed){
 		if(!WriteFile(f, p, length, &w, NULL) || w != length){
-			failwith("mlterminal_d_output_utf8");
+			caml_failwith("mlterminal_d_output_utf8");
 		}
 	}
 #else
@@ -1095,7 +1095,7 @@ CAMLprim value mlterminal_d_output_newline(value out, value unit)
 #ifdef __WINNT__
 	DWORD w;
 	if(!WriteFile(f, "\r\n", 2, &w, NULL) || w != 2){
-		failwith("mlterminal_d_output_newline");
+		caml_failwith("mlterminal_d_output_newline");
 	}
 #else
 	write(f, "\n", 1);
@@ -1118,7 +1118,7 @@ CAMLprim value mlterminal_d_mode(
 #ifdef __WINNT__
 	DWORD old_mode, new_mode;
 	if(!GetConsoleMode(f, &old_mode)){
-		failwith("mlterminal_d_mode(GetConsoleMode)");
+		caml_failwith("mlterminal_d_mode(GetConsoleMode)");
 	}
 	new_mode = old_mode;
 	if(Is_block(echo)){
@@ -1156,7 +1156,7 @@ CAMLprim value mlterminal_d_mode(
 	bool pred_mouse_mode = current_mouse_mode;
 	struct termios old_settings, new_settings;
 	if(tcgetattr(f, &old_settings) < 0){
-		failwith("mlterminal_d_mode(tcgetattr)");
+		caml_failwith("mlterminal_d_mode(tcgetattr)");
 	}
 	new_settings = old_settings;
 	if(Is_block(echo)){
@@ -1185,7 +1185,7 @@ CAMLprim value mlterminal_d_mode(
 	tcsetattr(f, TCSAFLUSH, &new_settings);
 	if(Is_block(mouse)){
 		if(!isatty(stdout)){
-			failwith("mlterminal_d_mode(stdout is not associated to terminal)");
+			caml_failwith("mlterminal_d_mode(stdout is not associated to terminal)");
 		}
 		set_mouse_mode(stdout, Bool_val(Field(mouse, 0)));
 	}
@@ -1249,7 +1249,7 @@ CAMLprim value mlterminal_d_input_line_utf8(value in)
 					caml_leave_blocking_section();
 					if(!succeeded){
 						free(buf);
-						failwith("mlterminal_d_input_line_utf8");
+						caml_failwith("mlterminal_d_input_line_utf8");
 					}
 					if(r <= 0){
 						free(buf);
@@ -1271,7 +1271,7 @@ CAMLprim value mlterminal_d_input_line_utf8(value in)
 				}
 				break; /* for */
 			}
-			failwith("mlterminal_d_input_line_utf8");
+			caml_failwith("mlterminal_d_input_line_utf8");
 		}
 		if(r <= 0){
 			free(wide_buf);
@@ -1319,7 +1319,7 @@ CAMLprim value mlterminal_d_input_line_utf8(value in)
 		caml_leave_blocking_section();
 		if(r < 0){
 			free(buf);
-			failwith("mlterminal_d_input_line_utf8");
+			caml_failwith("mlterminal_d_input_line_utf8");
 		}else if(r == 0){
 			free(buf);
 			caml_raise_end_of_file();
@@ -1351,7 +1351,7 @@ CAMLprim value mlterminal_d_is_empty(value in)
 	bool completed = false;
 	do{
 		if(!PeekConsoleInputW(f, &input_record, 1, &r)){
-			failwith("mlterminal_d_is_empty(PeekConsoleInputW)");
+			caml_failwith("mlterminal_d_is_empty(PeekConsoleInputW)");
 		}else if(r == 0){
 			result = Val_bool(true);
 			completed = true;
@@ -1398,7 +1398,7 @@ CAMLprim value mlterminal_d_input_event(value in)
 		bool succeeded = ReadConsoleInputW(f, &input_record, 1, &r);
 		caml_leave_blocking_section();
 		if(!succeeded){
-			failwith("mlterminal_d_input_event(ReadConsoleInputW)");
+			caml_failwith("mlterminal_d_input_event(ReadConsoleInputW)");
 		}else if(r == 0){
 			caml_raise_end_of_file(); /* ??? */
 		}else{
@@ -1601,7 +1601,7 @@ CAMLprim value mlterminal_d_input_event(value in)
 					handling_resized = true;
 					break; /* do */
 				}
-				failwith("mlterminal_d_input_event(read)");
+				caml_failwith("mlterminal_d_input_event(read)");
 			}else if(r == 0){
 				if(state == s_init) caml_raise_end_of_file();
 				state = s_exit;
@@ -1663,7 +1663,7 @@ CAMLprim value mlterminal_d_input_event(value in)
 	if(handling_resized){
 		resized = false;
 		if(!isatty(stdout)){
-			failwith("mlterminal_d_input_event"
+			caml_failwith("mlterminal_d_input_event"
 				"(stdout is not associated to terminal)");
 		}
 		int w, h;
