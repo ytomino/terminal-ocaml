@@ -523,14 +523,14 @@ CAMLprim value mlterminal_grayscale(value scale)
 CAMLprim value mlterminal_d_is_terminal(value out)
 {
 	CAMLparam1(out);
-	CAMLlocal1(result);
+	bool result;
 	handle_t f = handle_of_descr(out);
 #ifdef __WINNT__
-	result = Val_bool(GetFileType(f) == FILE_TYPE_CHAR);
+	result = GetFileType(f) == FILE_TYPE_CHAR;
 #else
-	result = Val_bool(isatty(f));
+	result = isatty(f);
 #endif
-	CAMLreturn(result);
+	CAMLreturn(Val_bool(result));
 }
 
 CAMLprim value mlterminal_d_size(value out)
@@ -1343,7 +1343,7 @@ CAMLprim value mlterminal_d_input_line_utf8(value in)
 CAMLprim value mlterminal_d_is_empty(value in)
 {
 	CAMLparam1(in);
-	CAMLlocal1(result);
+	bool result;
 	handle_t f = handle_of_descr(in);
 #ifdef __WINNT__
 	INPUT_RECORD input_record;
@@ -1353,19 +1353,19 @@ CAMLprim value mlterminal_d_is_empty(value in)
 		if(!PeekConsoleInputW(f, &input_record, 1, &r)){
 			caml_failwith("mlterminal_d_is_empty(PeekConsoleInputW)");
 		}else if(r == 0){
-			result = Val_bool(true);
+			result = true;
 			completed = true;
 		}else{
 			switch(input_record.EventType){
 			case KEY_EVENT:
 				if(input_record.Event.KeyEvent.bKeyDown){
-					result = Val_bool(false);
+					result = false;
 					completed = true;
 				}
 				break;
 			case MOUSE_EVENT:
 			case WINDOW_BUFFER_SIZE_EVENT:
-				result = Val_bool(false);
+				result = false;
 				completed = true;
 				break;
 			default:
@@ -1378,9 +1378,9 @@ CAMLprim value mlterminal_d_is_empty(value in)
 		}
 	}while(!completed);
 #else
-	result = Val_bool(!resized && is_empty(f));
+	result = !resized && is_empty(f);
 #endif
-	CAMLreturn(result);
+	CAMLreturn(Val_bool(result));
 }
 
 CAMLprim value mlterminal_d_input_event(value in)
