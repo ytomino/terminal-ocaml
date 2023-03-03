@@ -60,8 +60,8 @@ ifneq ($(STUBLIBNAME),)
 endif
 	-rmdir $(BUILDDIR)
 
-install: all
-	-mkdir -p $(INSTALLDIR)
+install: all | \
+		$(if $(and $(OCAMLC),$(STUBLIBNAME)),$(INSTALLDIR)/stublibs,$(INSTALLDIR))
 	cp $(MLCMI) $(INSTALLDIR)
 ifneq ($(OCAMLC),)
 ifneq ($(MLCMIB),)
@@ -69,7 +69,6 @@ ifneq ($(MLCMIB),)
 endif
 	cp $(BUILDDIR)/$(LIBNAME).cma $(INSTALLDIR)
 ifneq ($(STUBLIBNAME),)
-	-mkdir $(INSTALLDIR)/stublibs
 	cp $(BUILDDIR)/dll$(STUBLIBNAME)$(EXT_DLL) $(INSTALLDIR)/stublibs
 endif
 endif
@@ -81,6 +80,12 @@ ifneq ($(STUBLIBNAME),)
 	cp $(BUILDDIR)/lib$(STUBLIBNAME).a $(INSTALLDIR)
 endif
 endif
+
+$(INSTALLDIR)/stublibs:
+	mkdir -p $(INSTALLDIR)/stublibs
+
+$(INSTALLDIR):
+	mkdir -p $(INSTALLDIR)
 
 uninstall:
 	-rm $(addprefix $(INSTALLDIR)/,$(notdir $(MLCMI)))
