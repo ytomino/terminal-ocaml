@@ -14,8 +14,13 @@ OCAMLLIBDIR:=$(shell $(or $(OCAMLC),$(OCAMLOPT)) -where)
 include $(OCAMLLIBDIR)/Makefile.config
 
 PREFIX=$(abspath $(OCAMLLIBDIR)/../..)
+ifeq ($(PREFIX),$(abspath $(OCAMLLIBDIR)/../..))
+ LIBDIR=$(abspath $(OCAMLLIBDIR)/..)
+else
+ LIBDIR=$(PREFIX)/lib
+endif
 DESTDIR=
-INSTALLDIR=$(addsuffix /,$(DESTDIR))$(PREFIX)/lib/ocaml
+INSTALLDIR=$(addsuffix /,$(DESTDIR))$(LIBDIR)/ocaml
 
 BUILDSUFFIX=.noindex
 BUILDDIR=$(TARGET)$(BUILDSUFFIX)
