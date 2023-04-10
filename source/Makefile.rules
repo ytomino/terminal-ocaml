@@ -39,10 +39,10 @@ $(BUILDDIR)/$(LIBNAME).cmxa: $(MLCMX) $(MLCMI) $(CSLL)
 
 ifneq ($(STUBLIBNAME),)
 $(BUILDDIR)/dll$(STUBLIBNAME)$(EXT_DLL): $(COBJ)
-	$(MKDLL_ALL) -o $@ $< $(LDLIB)
+	$(MKDLL_ALL) -o $@ $^ $(LDLIB)
 
 $(BUILDDIR)/lib$(STUBLIBNAME).a: $(COBJ)
-	$(ARCMD) rcs $@ $<
+	$(ARCMD) rcs $@ $^
 endif
 
 $(BUILDDIR):
