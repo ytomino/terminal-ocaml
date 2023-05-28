@@ -13,8 +13,8 @@ OCAMLOPT=$(if $(OCAMLC),$(OCAMLC:c=opt),$(PROGRAMPREFIX)ocamlopt)
 OCAMLLIBDIR:=$(shell $(or $(OCAMLC),$(OCAMLOPT)) -where)
 include $(OCAMLLIBDIR)/Makefile.config
 
-PREFIX=$(abspath $(OCAMLLIBDIR)/../..)
-ifeq ($(PREFIX),$(abspath $(OCAMLLIBDIR)/../..))
+PREFIX=$(exec_prefix)
+ifeq ($(PREFIX),$(exec_prefix))
  LIBDIR=$(abspath $(OCAMLLIBDIR)/..)
 else
  LIBDIR=$(PREFIX)/lib
