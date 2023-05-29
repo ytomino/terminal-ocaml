@@ -1,8 +1,11 @@
 HOST:=$(shell $(CC) -dumpmachine)
 TARGET=$(HOST)
 
+BUILDSUFFIX=.noindex
+BUILDDIR:=$(TARGET)$(BUILDSUFFIX)
+
 ifneq ($(TARGET),$(HOST))
- PROGRAMPREFIX=$(TARGET)-
+ PROGRAMPREFIX:=$(TARGET)-
 else
  PROGRAMPREFIX=
 endif
@@ -21,9 +24,6 @@ else
 endif
 DESTDIR=
 INSTALLDIR=$(addsuffix /,$(DESTDIR))$(LIBDIR)/ocaml
-
-BUILDSUFFIX=.noindex
-BUILDDIR=$(TARGET)$(BUILDSUFFIX)
 
 DLLPREFIX=$(patsubst $(addsuffix /,$(DESTDIR))%,%,$(INSTALLDIR))/stublibs
 ifeq ($(DLLPREFIX),$(OCAMLLIBDIR)/stublibs)
