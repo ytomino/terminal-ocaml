@@ -1,12 +1,13 @@
-HOST:=$(shell $(CC) -dumpmachine)
+BUILD:=$(shell $(CC) -dumpmachine)
+HOST=$(BUILD)
 TARGET=$(HOST)
 
-ifneq ($(HOST),$(TARGET))
+ifneq ($(TARGET),$(BUILD))
  PROGRAMPREFIX=$(TARGET)-
  BINLN=
 else
  PROGRAMPREFIX=
- ifneq ($(findstring mingw,$(HOST))$(findstring msys,$(HOST)),)
+ ifneq ($(findstring mingw,$(BUILD))$(findstring msys,$(BUILD)),)
   BINLN=
  else
   BINLN=bin

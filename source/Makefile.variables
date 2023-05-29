@@ -1,10 +1,11 @@
-HOST:=$(shell $(CC) -dumpmachine)
+BUILD:=$(shell $(CC) -dumpmachine)
+HOST=$(BUILD)
 TARGET=$(HOST)
 
 BUILDSUFFIX=.noindex
 BUILDDIR:=$(TARGET)$(BUILDSUFFIX)
 
-ifneq ($(TARGET),$(HOST))
+ifneq ($(TARGET),$(BUILD))
  PROGRAMPREFIX:=$(TARGET)-
 else
  PROGRAMPREFIX=
