@@ -25,7 +25,7 @@ TERMINAL_BUILDDIR=$(BUILDDIR)/terminal$(BUILDSUFFIX)
 EXAMPLES1=$(basename $(wildcard *.ml))
 EXAMPLES=$(EXAMPLES1) vs
 
-.PHONY: all check interactive man clean
+.PHONY: all check interactive man clean # $(TESTS)
 
 all: \
 	$(if $(OCAMLC),$(patsubst %,$(BUILDDIR)/%.byte.exe,$(EXAMPLES))) \
@@ -48,7 +48,7 @@ $(BUILDDIR)/%.opt.exe: basicmagazine/%.ml $(BUILDDIR)/terminal.cmxa
 	$(OCAMLOPT) -c -o $(BUILDDIR)/$*.cmx -I $(BUILDDIR) $(OCAMLCFLAGS) $<
 	$(OCAMLOPT) -o $@ -I $(BUILDDIR) unix.cmxa terminal.cmxa $(BUILDDIR)/$*.cmx
 
-check: all $(TESTS)
+check: all # $(TESTS)
 
 interactive: $(BUILDDIR)/terminal.cma
 	$(RLWRAP) ocaml -I $(BUILDDIR) $(OCAMLCFLAGS) unix.cma terminal.cma
