@@ -22,7 +22,7 @@ BUILDSUFFIX=.noindex
 BUILDDIR=$(TARGET)$(BUILDSUFFIX)
 TERMINAL_BUILDDIR=$(BUILDDIR)/terminal$(BUILDSUFFIX)
 
-EXAMPLES1=$(basename $(notdir $(wildcard *.ml)))
+EXAMPLES1=$(basename $(wildcard *.ml))
 EXAMPLES=$(EXAMPLES1) vs
 
 .PHONY: all check interactive man clean
