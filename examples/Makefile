@@ -53,7 +53,8 @@ check: all $(TESTS)
 interactive: $(BUILDDIR)/terminal.cma
 	$(RLWRAP) ocaml -I $(BUILDDIR) $(OCAMLCFLAGS) unix.cma terminal.cma
 
-$(BUILDDIR)/terminal.cma $(BUILDDIR)/terminal.cmxa&: \
+$(if $(OCAMLC),$(BUILDDIR)/terminal.cma) \
+$(if $(OCAMLOPT),$(BUILDDIR)/terminal.cmxa)&: \
 		$(wildcard ../source/terminal*)
 	$(MAKE) -C ../source install \
 		BUILDDIR=$(abspath $(TERMINAL_BUILDDIR)) \
