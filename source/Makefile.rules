@@ -6,7 +6,9 @@ all: \
 
 $(PAIRED_MLCMI): $(BUILDDIR)/%.cmi: %.mli | $(BUILDDIR)
 	@$(if $(filter-out $(MLI_MODULES),$*),false)
-	$(or $(OCAMLC),$(OCAMLOPT)) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -o $@ $<
+	$(or \
+		$(if $(OCAMLC),$(OCAMLC) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -o $@ $<), \
+		$(if $(OCAMLOPT),$(OCAMLOPT) -c -I $(BUILDDIR) $(OCAMLOPTFLAGS) -o $@ $<))
 
 $(PAIRED_MLCMI:.cmi=.cmo): $(BUILDDIR)/%.cmo: %.ml $(BUILDDIR)/%.cmi
 	@$(if $(filter-out $(MLI_MODULES),$*),false)
@@ -14,7 +16,7 @@ $(PAIRED_MLCMI:.cmi=.cmo): $(BUILDDIR)/%.cmo: %.ml $(BUILDDIR)/%.cmi
 
 $(PAIRED_MLCMI:.cmi=.cmx): $(BUILDDIR)/%.cmx: %.ml $(BUILDDIR)/%.cmi
 	@$(if $(filter-out $(MLI_MODULES),$*),false)
-	$(OCAMLOPT) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -o $@ $<
+	$(OCAMLOPT) -c -I $(BUILDDIR) $(OCAMLOPTFLAGS) -o $@ $<
 
 $(MLONLY_MLCMI:.cmi=.cmo) $(MLCMOB): $(BUILDDIR)/%.cmo: %.ml | $(BUILDDIR)
 	@$(if $(filter-out $(MLONLY_MODULES) $(ML_MODULESB),$*),false)
@@ -22,7 +24,7 @@ $(MLONLY_MLCMI:.cmi=.cmo) $(MLCMOB): $(BUILDDIR)/%.cmo: %.ml | $(BUILDDIR)
 
 $(MLONLY_MLCMI:.cmi=.cmx): $(BUILDDIR)/%.cmx: %.ml | $(BUILDDIR)
 	@$(if $(filter-out $(MLONLY_MODULES),$*),false)
-	$(OCAMLOPT) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -w -70 -o $@ $<
+	$(OCAMLOPT) -c -I $(BUILDDIR) $(OCAMLOPTFLAGS) -w -70 -o $@ $<
 
 $(MLONLY_MLCMI): $(BUILDDIR)/%.cmi: \
 		$(if $(OCAMLC),$(BUILDDIR)/%.cmo) $(if $(OCAMLOPT),$(BUILDDIR)/%.cmx)

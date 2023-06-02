@@ -9,6 +9,7 @@ LIBNAME=terminal
 STUBLIBNAME=ml$(LIBNAME)
 
 OCAMLCFLAGS=-w +a
+OCAMLOPTFLAGS=$(OCAMLCFLAGS)
 CFLAGS=-Wall -Wextra -Wno-unused-result
 
 CCLIB=
