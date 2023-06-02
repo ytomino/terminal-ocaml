@@ -55,7 +55,7 @@ interactive: $(BUILDDIR)/terminal.cma
 
 $(if $(OCAMLC),$(BUILDDIR)/terminal.cma) \
 $(if $(OCAMLOPT),$(BUILDDIR)/terminal.cmxa)&: \
-		$(wildcard ../source/terminal*)
+		../source/terminal*
 	$(MAKE) -C ../source install \
 		BUILDDIR=$(abspath $(TERMINAL_BUILDDIR)) \
 		INSTALLDIR=$(abspath $(BUILDDIR))
