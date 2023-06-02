@@ -5,33 +5,27 @@ TARGET=$(HOST)
 BUILDSUFFIX=.noindex
 BUILDDIR:=$(TARGET)$(BUILDSUFFIX)
 
-ifneq ($(TARGET),$(BUILD))
- PROGRAMPREFIX:=$(TARGET)-
-else
- PROGRAMPREFIX=
-endif
+PROGRAMPREFIX:=$(addsuffix -,$(filter-out $(BUILD),$(TARGET)))
 
 OCAMLC=$(PROGRAMPREFIX)ocamlc
-OCAMLOPT=$(if $(OCAMLC),$(OCAMLC:c=opt),$(PROGRAMPREFIX)ocamlopt)
+OCAMLOPT=$(or $(OCAMLC:c=opt),$(PROGRAMPREFIX)ocamlopt)
 
 OCAMLLIBDIR:=$(shell $(or $(OCAMLC),$(OCAMLOPT)) -where)
 include $(OCAMLLIBDIR)/Makefile.config
 
 PREFIX=$(exec_prefix)
-ifeq ($(PREFIX),$(exec_prefix))
- LIBDIR=$(abspath $(OCAMLLIBDIR)/..)
-else
- LIBDIR=$(PREFIX)/lib
-endif
+LIBDIR=$(or \
+         $(and $(filter-out $(exec_prefix),$(PREFIX)),$(PREFIX)/lib), \
+         $(abspath $(OCAMLLIBDIR)/..))
 DESTDIR=
 INSTALLDIR=$(addsuffix /,$(DESTDIR))$(LIBDIR)/ocaml
 
 DLLPREFIX=$(patsubst $(addsuffix /,$(DESTDIR))%,%,$(INSTALLDIR))/stublibs
-ifeq ($(DLLPREFIX),$(OCAMLLIBDIR)/stublibs)
- DLLIB=$(addprefix -dllib -l,$(STUBLIBNAME))
-else
- DLLIB=$(patsubst %,-dllib $(DLLPREFIX)/dll%$(EXT_DLL),$(STUBLIBNAME))
-endif
+DLLIB=$(and $(STUBLIBNAME), \
+        -dllib $(or \
+                 $(and $(filter-out $(OCAMLLIBDIR)/stublibs,$(DLLPREFIX)), \
+                   $(DLLPREFIX)/dll$(STUBLIBNAME)$(EXT_DLL)), \
+                 -l$(STUBLIBNAME)))
 SLLIB=$(addprefix -cclib -l,$(STUBLIBNAME))
 
 ML_MODULES=$(basename $(MLSRC))
@@ -55,8 +49,8 @@ CSLL=$(patsubst %,$(BUILDDIR)/lib%.a,$(STUBLIBNAME))
 
 OCAMLC_CFLAGS_ALL=$(strip \
                     $(OCAMLC_CFLAGS) \
-                    $(if $(filter-out $(OCAMLC_CFLAGS),$(CFLAGS)),$(CFLAGS)) \
-                    $(if $(filter-out $(OCAMLC_CFLAGS),$(SHAREDLIB_CFLAGS)), \
+                    $(and $(filter-out $(OCAMLC_CFLAGS),$(CFLAGS)),$(CFLAGS)) \
+                    $(and $(filter-out $(OCAMLC_CFLAGS),$(SHAREDLIB_CFLAGS)), \
                       $(SHAREDLIB_CFLAGS)))
 
-MKDLL_ALL=$(strip $(MKDLL) $(if $(filter-out $(MKDLL),$(LDFLAGS)),$(LDFLAGS)))
+MKDLL_ALL=$(strip $(MKDLL) $(and $(filter-out $(MKDLL),$(LDFLAGS)),$(LDFLAGS)))

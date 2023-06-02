@@ -1,37 +1,37 @@
 .PHONY: all clean install uninstall
 
 all: \
-	$(if $(OCAMLC),$(BUILDDIR)/$(LIBNAME).cma) \
-	$(if $(OCAMLOPT),$(BUILDDIR)/$(LIBNAME).cmxa)
+	$(and $(OCAMLC),$(BUILDDIR)/$(LIBNAME).cma) \
+	$(and $(OCAMLOPT),$(BUILDDIR)/$(LIBNAME).cmxa)
 
 $(PAIRED_MLCMI): $(BUILDDIR)/%.cmi: %.mli | $(BUILDDIR)
-	@$(if $(filter-out $(MLI_MODULES),$*),false)
+	@$(and $(filter-out $(MLI_MODULES),$*),false)
 	$(or \
-		$(if $(OCAMLC),$(OCAMLC) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -o $@ $<), \
-		$(if $(OCAMLOPT),$(OCAMLOPT) -c -I $(BUILDDIR) $(OCAMLOPTFLAGS) -o $@ $<))
+		$(and $(OCAMLC),$(OCAMLC) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -o $@ $<), \
+		$(and $(OCAMLOPT),$(OCAMLOPT) -c -I $(BUILDDIR) $(OCAMLOPTFLAGS) -o $@ $<))
 
 $(PAIRED_MLCMI:.cmi=.cmo): $(BUILDDIR)/%.cmo: %.ml $(BUILDDIR)/%.cmi
-	@$(if $(filter-out $(MLI_MODULES),$*),false)
+	@$(and $(filter-out $(MLI_MODULES),$*),false)
 	$(OCAMLC) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -o $@ $<
 
 $(PAIRED_MLCMI:.cmi=.cmx): $(BUILDDIR)/%.cmx: %.ml $(BUILDDIR)/%.cmi
-	@$(if $(filter-out $(MLI_MODULES),$*),false)
+	@$(and $(filter-out $(MLI_MODULES),$*),false)
 	$(OCAMLOPT) -c -I $(BUILDDIR) $(OCAMLOPTFLAGS) -o $@ $<
 
 $(MLONLY_MLCMI:.cmi=.cmo) $(MLCMOB): $(BUILDDIR)/%.cmo: %.ml | $(BUILDDIR)
-	@$(if $(filter-out $(MLONLY_MODULES) $(ML_MODULESB),$*),false)
+	@$(and $(filter-out $(MLONLY_MODULES) $(ML_MODULESB),$*),false)
 	$(OCAMLC) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -w -70 -o $@ $<
 
 $(MLONLY_MLCMI:.cmi=.cmx): $(BUILDDIR)/%.cmx: %.ml | $(BUILDDIR)
-	@$(if $(filter-out $(MLONLY_MODULES),$*),false)
+	@$(and $(filter-out $(MLONLY_MODULES),$*),false)
 	$(OCAMLOPT) -c -I $(BUILDDIR) $(OCAMLOPTFLAGS) -w -70 -o $@ $<
 
 $(MLONLY_MLCMI): $(BUILDDIR)/%.cmi: \
-		$(if $(OCAMLC),$(BUILDDIR)/%.cmo) $(if $(OCAMLOPT),$(BUILDDIR)/%.cmx)
-	@$(if $(filter-out $(MLONLY_MODULES),$*),false)
+		$(and $(OCAMLC),$(BUILDDIR)/%.cmo) $(and $(OCAMLOPT),$(BUILDDIR)/%.cmx)
+	@$(and $(filter-out $(MLONLY_MODULES),$*),false)
 
 $(MLCMIB): $(BUILDDIR)/%.cmi: $(BUILDDIR)/%.cmo
-	@$(if $(filter-out $(ML_MODULESB),$*),false)
+	@$(and $(filter-out $(ML_MODULESB),$*),false)
 
 $(BUILDDIR)/%.o: %.c | $(BUILDDIR)
 	$(CC) -c -isystem "$(OCAMLLIBDIR)" $(OCAMLC_CFLAGS_ALL) -o $@ $<
@@ -42,13 +42,11 @@ $(BUILDDIR)/$(LIBNAME).cma: $(MLCMO) $(MLCMOB) $(CDLL)
 $(BUILDDIR)/$(LIBNAME).cmxa: $(MLCMX) $(CSLL)
 	$(OCAMLOPT) -a -o $@ $(MLCMX) $(SLLIB) $(CCLIB)
 
-ifneq ($(STUBLIBNAME),)
-$(BUILDDIR)/dll$(STUBLIBNAME)$(EXT_DLL): $(COBJ)
+$(and $(STUBLIBNAME),$(BUILDDIR)/dll$(STUBLIBNAME)$(EXT_DLL)): $(COBJ)
 	$(MKDLL_ALL) -o $@ $^ $(LDLIB)
 
-$(BUILDDIR)/lib$(STUBLIBNAME).a: $(COBJ)
+$(and $(STUBLIBNAME),$(BUILDDIR)/lib$(STUBLIBNAME).a): $(COBJ)
 	$(ARCMD) rcs $@ $^
-endif
 
 $(BUILDDIR):
 	mkdir -p $@
@@ -60,31 +58,25 @@ clean:
 		$(BUILDDIR)/$(LIBNAME).cma \
 		$(MLCMX) \
 		$(BUILDDIR)/$(LIBNAME).cmxa $(BUILDDIR)/$(LIBNAME).a \
-		$(if $(STUBLIBNAME), \
+		$(and $(STUBLIBNAME), \
 			$(BUILDDIR)/lib$(STUBLIBNAME).a \
 			$(BUILDDIR)/dll$(STUBLIBNAME)$(EXT_DLL)) \
 		$(MLCMO) $(MLCMOB) $(MLOBJ) $(COBJ))
 	-rmdir $(BUILDDIR)
 
-install: all | \
-		$(if $(and $(OCAMLC),$(STUBLIBNAME)),$(INSTALLDIR)/stublibs,$(INSTALLDIR))
-ifneq ($(or $(OCAMLC),$(OCAMLOPT)),)
+install: all | $(INSTALLDIR)$(and $(OCAMLC),$(STUBLIBNAME),/stublibs)
 	cp $(strip \
 		$(MLCMI) \
-		$(if $(OCAMLC), \
+		$(and $(OCAMLC), \
 			$(MLCMIB) \
 			$(BUILDDIR)/$(LIBNAME).cma) \
-		$(if $(OCAMLOPT), \
+		$(and $(OCAMLOPT), \
 			$(MLCMX) \
 			$(BUILDDIR)/$(LIBNAME).cmxa $(BUILDDIR)/$(LIBNAME).a \
-			$(if $(STUBLIBNAME),$(BUILDDIR)/lib$(STUBLIBNAME).a)) \
+			$(and $(STUBLIBNAME),$(BUILDDIR)/lib$(STUBLIBNAME).a)) \
 		$(INSTALLDIR))
-endif
-ifneq ($(OCAMLC),)
-ifneq ($(STUBLIBNAME),)
-	cp $(BUILDDIR)/dll$(STUBLIBNAME)$(EXT_DLL) $(INSTALLDIR)/stublibs
-endif
-endif
+	$(and $(OCAMLC),$(STUBLIBNAME), \
+		cp $(BUILDDIR)/dll$(STUBLIBNAME)$(EXT_DLL) $(INSTALLDIR)/stublibs)
 
 $(INSTALLDIR)/stublibs:
 	mkdir -p $(INSTALLDIR)/stublibs
@@ -93,19 +85,15 @@ $(INSTALLDIR):
 	mkdir -p $(INSTALLDIR)
 
 uninstall:
-ifneq ($(or $(OCAMLC),$(OCAMLOPT)),)
-	-rm $(strip $(addprefix $(INSTALLDIR)/, \
-		$(notdir $(MLCMI)) \
-		$(if $(OCAMLC), \
-			$(notdir $(MLCMIB)) \
-			$(LIBNAME).cma) \
-		$(if $(OCAMLOPT), \
-			$(notdir $(MLCMX)) \
-			$(LIBNAME).cmxa $(LIBNAME).a \
-			$(if $(STUBLIBNAME),lib$(STUBLIBNAME).a))))
-endif
-ifneq ($(OCAMLC),)
-ifneq ($(STUBLIBNAME),)
-	-rm $(INSTALLDIR)/stublibs/dll$(STUBLIBNAME)$(EXT_DLL)
-endif
-endif
+	-rm $(strip \
+		$(addprefix $(INSTALLDIR)/, \
+			$(notdir $(MLCMI)) \
+			$(and $(OCAMLC), \
+				$(notdir $(MLCMIB)) \
+				$(LIBNAME).cma) \
+			$(and $(OCAMLOPT), \
+				$(notdir $(MLCMX)) \
+				$(LIBNAME).cmxa $(LIBNAME).a \
+				$(and $(STUBLIBNAME),lib$(STUBLIBNAME).a))))
+	-$(and $(OCAMLC),$(STUBLIBNAME), \
+		rm $(INSTALLDIR)/stublibs/dll$(STUBLIBNAME)$(EXT_DLL))

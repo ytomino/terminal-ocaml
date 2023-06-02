@@ -2,20 +2,10 @@ BUILD:=$(shell $(CC) -dumpmachine)
 HOST=$(BUILD)
 TARGET=$(HOST)
 
-ifneq ($(TARGET),$(BUILD))
- PROGRAMPREFIX=$(TARGET)-
- BINLN=
-else
- PROGRAMPREFIX=
- ifneq ($(findstring mingw,$(BUILD))$(findstring msys,$(BUILD)),)
-  BINLN=
- else
-  BINLN=bin
- endif
-endif
+PROGRAMPREFIX=$(addsuffix -,$(filter-out $(BUILD),$(TARGET)))
 
 OCAMLC=$(PROGRAMPREFIX)ocamlc
-OCAMLOPT=$(if $(OCAMLC),$(OCAMLC:c=opt),$(PROGRAMPREFIX)ocamlopt)
+OCAMLOPT=$(or $(OCAMLC:c=opt),$(PROGRAMPREFIX)ocamlopt)
 RLWRAP?=
 
 OCAMLCFLAGS=
@@ -25,14 +15,17 @@ BUILDSUFFIX=.noindex
 BUILDDIR=$(TARGET)$(BUILDSUFFIX)
 TERMINAL_BUILDDIR=$(BUILDDIR)/terminal$(BUILDSUFFIX)
 
+BINLN=$(and $(filter $(BUILD),$(TARGET)), \
+        $(if $(findstring mingw,$(BUILD))$(findstring msys,$(BUILD)),,bin))
+
 EXAMPLES1=$(basename $(wildcard *.ml))
 EXAMPLES=$(EXAMPLES1) vs
 
 .PHONY: all check interactive man clean # $(TESTS)
 
 all: \
-	$(if $(OCAMLC),$(patsubst %,$(BUILDDIR)/%.byte.exe,$(EXAMPLES))) \
-	$(if $(OCAMLOPT),$(patsubst %,$(BUILDDIR)/%.opt.exe,$(EXAMPLES))) \
+	$(and $(OCAMLC),$(patsubst %,$(BUILDDIR)/%.byte.exe,$(EXAMPLES))) \
+	$(and $(OCAMLOPT),$(patsubst %,$(BUILDDIR)/%.opt.exe,$(EXAMPLES))) \
 	$(BINLN)
 
 $(BUILDDIR)/%.byte.exe: %.ml $(BUILDDIR)/terminal.cma
@@ -56,8 +49,8 @@ check: all # $(TESTS)
 interactive: $(BUILDDIR)/terminal.cma
 	$(RLWRAP) ocaml -I $(BUILDDIR) $(OCAMLCFLAGS) unix.cma terminal.cma
 
-$(if $(OCAMLC),$(BUILDDIR)/terminal.cma) \
-$(if $(OCAMLOPT),$(BUILDDIR)/terminal.cmxa)&: \
+$(and $(OCAMLC),$(BUILDDIR)/terminal.cma) \
+$(and $(OCAMLOPT),$(BUILDDIR)/terminal.cmxa)&: \
 		../source/terminal*
 	$(MAKE) -C ../source install \
 		BUILDDIR=$(abspath $(TERMINAL_BUILDDIR)) \
@@ -72,7 +65,7 @@ $(BINLN):
 	ln -s $(BUILDDIR) $@
 
 clean:
-	-$(if $(BINLN),[ -h "$(BINLN)" ] && rm "$(BINLN)")
+	-$(and $(BINLN),[ -h "$(BINLN)" ] && rm "$(BINLN)")
 	-$(MAKE) -C ../source clean uninstall \
 		BUILDDIR=$(abspath $(TERMINAL_BUILDDIR)) \
 		INSTALLDIR=$(abspath $(BUILDDIR))
