@@ -5,7 +5,7 @@ TARGET=$(HOST)
 PROGRAMPREFIX=$(addsuffix -,$(filter-out $(BUILD),$(TARGET)))
 
 OCAMLC=$(PROGRAMPREFIX)ocamlc
-OCAMLOPT=$(or $(OCAMLC:c=opt),$(PROGRAMPREFIX)ocamlopt)
+OCAMLOPT=$(or $(filter-out $(OCAMLC),$(OCAMLC:c=opt)),$(PROGRAMPREFIX)ocamlopt)
 RLWRAP?=
 
 OCAMLCFLAGS=

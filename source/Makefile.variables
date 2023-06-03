@@ -8,7 +8,7 @@ BUILDDIR:=$(TARGET)$(BUILDSUFFIX)
 PROGRAMPREFIX:=$(addsuffix -,$(filter-out $(BUILD),$(TARGET)))
 
 OCAMLC=$(PROGRAMPREFIX)ocamlc
-OCAMLOPT=$(or $(OCAMLC:c=opt),$(PROGRAMPREFIX)ocamlopt)
+OCAMLOPT=$(or $(filter-out $(OCAMLC),$(OCAMLC:c=opt)),$(PROGRAMPREFIX)ocamlopt)
 
 OCAMLLIBDIR:=$(shell $(or $(OCAMLC),$(OCAMLOPT)) -where)
 include $(OCAMLLIBDIR)/Makefile.config
