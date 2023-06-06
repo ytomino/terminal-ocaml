@@ -52,9 +52,10 @@ interactive: $(BUILDDIR)/terminal.cma
 $(and $(OCAMLC),$(BUILDDIR)/terminal.cma) \
 $(and $(OCAMLOPT),$(BUILDDIR)/terminal.cmxa)&: \
 		../source/terminal*
-	$(MAKE) -C ../source install \
+	$(MAKE) $(strip \
+		-C ../source install \
 		BUILDDIR=$(abspath $(TERMINAL_BUILDDIR)) \
-		INSTALLDIR=$(abspath $(BUILDDIR))
+		INSTALLDIR=$(abspath $(BUILDDIR)))
 
 man: ../source/terminal.mli
 	-mkdir $(TMPDIR)/man3
@@ -66,9 +67,10 @@ $(BINLN):
 
 clean:
 	-$(and $(BINLN),[ -h "$(BINLN)" ] && rm "$(BINLN)")
-	-$(MAKE) -C ../source clean uninstall \
+	-$(MAKE) $(strip \
+		-C ../source clean uninstall \
 		BUILDDIR=$(abspath $(TERMINAL_BUILDDIR)) \
-		INSTALLDIR=$(abspath $(BUILDDIR))
+		INSTALLDIR=$(abspath $(BUILDDIR)))
 	-rm $(BUILDDIR)/*.exe $(BUILDDIR)/*.cm? $(BUILDDIR)/*.o
 	-rmdir $(BUILDDIR)/stublibs
 	-rmdir $(BUILDDIR)
