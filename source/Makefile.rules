@@ -65,18 +65,11 @@ clean:
 	-rmdir $(BUILDDIR)
 
 install: all | $(INSTALLDIR)$(and $(OCAMLC),$(STUBLIBNAME),/stublibs)
-	cp $(strip \
-		$(MLCMI) \
-		$(and $(OCAMLC), \
-			$(MLCMIB) \
-			$(BUILDDIR)/$(LIBNAME).cma) \
-		$(and $(OCAMLOPT), \
-			$(MLCMX) \
-			$(BUILDDIR)/$(LIBNAME).cmxa $(BUILDDIR)/$(LIBNAME).a \
-			$(and $(STUBLIBNAME),$(BUILDDIR)/lib$(STUBLIBNAME).a)) \
-		$(INSTALLDIR))
+	cd $(INSTALLDIR) && $(INSTALL_DATA) $(strip \
+		$(addprefix $(_BUILDDIR_FROM_INSTALLDIR)/,$(_INSTALLED_FILES)) .)
 	$(and $(OCAMLC),$(STUBLIBNAME), \
-		cp $(BUILDDIR)/dll$(STUBLIBNAME)$(EXT_DLL) $(INSTALLDIR)/stublibs)
+		cd $(INSTALLDIR)/stublibs && $(INSTALL_PROGRAM) $(strip \
+			$(_BUILDDIR_FROM_INSTALLDIRSTUBLIBS)/$(notdir $(CDLL)) .))
 
 $(INSTALLDIR)/stublibs:
 	mkdir -p $(INSTALLDIR)/stublibs
@@ -86,14 +79,5 @@ $(INSTALLDIR):
 
 uninstall:
 	-rm $(strip \
-		$(addprefix $(INSTALLDIR)/, \
-			$(notdir $(MLCMI)) \
-			$(and $(OCAMLC), \
-				$(notdir $(MLCMIB)) \
-				$(LIBNAME).cma) \
-			$(and $(OCAMLOPT), \
-				$(notdir $(MLCMX)) \
-				$(LIBNAME).cmxa $(LIBNAME).a \
-				$(and $(STUBLIBNAME),lib$(STUBLIBNAME).a))))
-	-$(and $(OCAMLC),$(STUBLIBNAME), \
-		rm $(INSTALLDIR)/stublibs/dll$(STUBLIBNAME)$(EXT_DLL))
+		$(addprefix $(INSTALLDIR)/,$(_INSTALLED_FILES)) \
+		$(addprefix $(INSTALLDIR)/stublibs/,$(notdir $(CDLL))))

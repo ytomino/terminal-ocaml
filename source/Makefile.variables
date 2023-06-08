@@ -5,6 +5,12 @@ TARGET=$(HOST)
 BUILDSUFFIX=.noindex
 BUILDDIR:=$(TARGET)$(BUILDSUFFIX)
 
+INSTALL?=install
+INSTALL_DATA=$(or \
+               $(and $(filter-out install,$(INSTALL)),$(INSTALL)), \
+               install -m 644)
+INSTALL_PROGRAM=$(INSTALL)
+
 PROGRAMPREFIX:=$(addsuffix -,$(filter-out $(BUILD),$(TARGET)))
 
 OCAMLC=$(PROGRAMPREFIX)ocamlc
@@ -54,3 +60,17 @@ OCAMLC_CFLAGS_ALL=$(strip \
                       $(SHAREDLIB_CFLAGS)))
 
 MKDLL_ALL=$(strip $(MKDLL) $(and $(filter-out $(MKDLL),$(LDFLAGS)),$(LDFLAGS)))
+
+_INSTALLED_FILES=$(notdir $(MLCMI)) \
+                 $(and $(OCAMLC),$(notdir $(MLCMIB)) $(LIBNAME).cma) \
+                 $(and $(OCAMLOPT), \
+                   $(notdir $(MLCMX)) $(LIBNAME).cmxa $(LIBNAME).a \
+                   $(and $(STUBLIBNAME),lib$(STUBLIBNAME).a))
+
+_BUILDDIR_FROM_INSTALLDIR=$(patsubst $(abspath $(INSTALLDIR))/%,%, \
+                            $(abspath $(BUILDDIR)))
+_BUILDDIR_FROM_INSTALLDIRSTUBLIBS=$(or \
+                                    $(addprefix ../, \
+                                      $(filter-out /%, \
+                                        $(_BUILDDIR_FROM_INSTALLDIR))), \
+                                    $(_BUILDDIR_FROM_INSTALLDIR))
