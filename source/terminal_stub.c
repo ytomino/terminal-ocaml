@@ -550,8 +550,8 @@ CAMLprim value mlterminal_d_size(value out)
 	get_size(f, &w, &h);
 #endif
 	result = caml_alloc_tuple(2);
-	Field(result, 0) = Val_int(w);
-	Field(result, 1) = Val_int(h);
+	Store_field(result, 0, Val_int(w));
+	Store_field(result, 1, Val_int(h));
 	CAMLreturn(result);
 }
 
@@ -596,10 +596,10 @@ CAMLprim value mlterminal_d_view(value out)
 	bottom = h - 1;
 #endif
 	result = caml_alloc_tuple(2);
-	Field(result, 0) = Val_int(left);
-	Field(result, 1) = Val_int(top);
-	Field(result, 2) = Val_int(right);
-	Field(result, 3) = Val_int(bottom);
+	Store_field(result, 0, Val_int(left));
+	Store_field(result, 1, Val_int(top));
+	Store_field(result, 2, Val_int(right));
+	Store_field(result, 3, Val_int(bottom));
 	CAMLreturn(result);
 }
 
@@ -646,8 +646,8 @@ CAMLprim value mlterminal_d_position(value out)
 	--y;
 #endif
 	result = caml_alloc_tuple(2);
-	Field(result, 0) = Val_int(x);
-	Field(result, 1) = Val_int(y);
+	Store_field(result, 0, Val_int(x));
+	Store_field(result, 1, Val_int(y));
 	CAMLreturn(result);
 }
 
