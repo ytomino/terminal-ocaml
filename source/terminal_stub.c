@@ -628,7 +628,16 @@ CAMLprim value mlterminal_d_position(value out)
 	write(f, "\x1b[6n", 4);
 	char buf[256];
 	int i = 0;
-	while(read(stdin, &buf[i], 1) == 1){
+	for(;;){
+		ssize_t r = read(stdin, &buf[i], 1);
+		if(r < 0){
+			if(errno == EINTR){
+				continue; /* for */
+			}
+			break; /* for */
+		}else if(r == 0){
+			break; /* for */
+		}
 		if(i == 0){
 			if(buf[i] == '\x1b'){
 				++i;
@@ -1318,6 +1327,9 @@ CAMLprim value mlterminal_d_input_line_utf8(value in)
 		ssize_t r = read(f, p, 1);
 		caml_leave_blocking_section();
 		if(r < 0){
+			if(errno == EINTR){
+				continue; /* for */
+			}
 			free(buf);
 			caml_failwith("mlterminal_d_input_line_utf8");
 		}else if(r == 0){
@@ -1597,9 +1609,13 @@ CAMLprim value mlterminal_d_input_event(value in)
 			if(break_on_sigwinch) set_restart_on_sigwinch(true);
 			caml_leave_blocking_section();
 			if(r < 0){
-				if(errno == EINTR && break_on_sigwinch && resized){
-					handling_resized = true;
-					break; /* do */
+				if(errno == EINTR){
+					if(break_on_sigwinch && resized){
+						handling_resized = true;
+						break; /* do */
+					}else{
+						continue; /* do */
+					}
 				}
 				caml_failwith("mlterminal_d_input_event(read)");
 			}else if(r == 0){
