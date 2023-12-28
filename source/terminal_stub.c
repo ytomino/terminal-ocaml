@@ -1237,9 +1237,13 @@ CAMLprim value mlterminal_d_input_line_utf8(value in)
 	WCHAR *wide_buf = malloc(wide_max_length * sizeof(WCHAR));
 	if(wide_buf == NULL) caml_raise_out_of_memory();
 	for(;;){
+		if(caml_check_pending_actions()){
+			free(wide_buf);
+			caml_process_pending_actions();
+		}
 		WCHAR *p = wide_buf + wide_length;
 		DWORD r;
-		caml_enter_blocking_section();
+		caml_enter_blocking_section_no_pending();
 		bool succeeded = ReadConsoleW(f, p, 1, &r, NULL);
 		caml_leave_blocking_section();
 		if(!succeeded){
@@ -1251,9 +1255,13 @@ CAMLprim value mlterminal_d_input_line_utf8(value in)
 				buf = malloc(max_length);
 				if(buf == NULL) caml_raise_out_of_memory();
 				for(;;){
+					if(caml_check_pending_actions()){
+						free(buf);
+						caml_process_pending_actions();
+					}
 					char *p = buf + length;
 					DWORD r;
-					caml_enter_blocking_section();
+					caml_enter_blocking_section_no_pending();
 					bool succeeded = ReadFile(f, p, 1, &r, NULL);
 					caml_leave_blocking_section();
 					if(!succeeded){
@@ -1322,8 +1330,12 @@ CAMLprim value mlterminal_d_input_line_utf8(value in)
 	char *buf = malloc(max_length);
 	if(buf == NULL) caml_raise_out_of_memory();
 	for(;;){
+		if(caml_check_pending_actions()){
+			free(buf);
+			caml_process_pending_actions();
+		}
 		char *p = buf + length;
-		caml_enter_blocking_section();
+		caml_enter_blocking_section_no_pending();
 		ssize_t r = read(f, p, 1);
 		caml_leave_blocking_section();
 		if(r < 0){

@@ -10,7 +10,7 @@ This supports Windows and POSIX.
 Prerequisites
 -------------
 
-OCaml >= 4.08
+OCaml >= 4.12
  https://ocaml.org/
 
 How to make
