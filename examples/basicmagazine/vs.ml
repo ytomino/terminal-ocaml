@@ -325,6 +325,7 @@ let rec run (stdout, stdin: Unix.file_descr * Unix.file_descr): unit = (
 	(* MENU *)
 	cls ();
 	color 7;
+	locate 0 0;
 	(*     ----+----1----+----2----+----3----+----4 *)
 	print "        ▁▁▁▁    ▁▁                     "; nl ();
 	print "        ██ ▕    ██    ███████          "; nl ();
