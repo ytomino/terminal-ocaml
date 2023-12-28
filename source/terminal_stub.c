@@ -1298,6 +1298,10 @@ CAMLprim value mlterminal_d_input_line_utf8(value in)
 			/* succeeded */
 			max_length = wide_length * 6;
 			buf = malloc(max_length + 1);
+			if(buf == NULL){
+				free(wide_buf);
+				caml_raise_out_of_memory();
+			}
 			length = WideCharToMultiByte(
 				CP_UTF8,
 				0,
