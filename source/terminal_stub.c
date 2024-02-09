@@ -1072,10 +1072,10 @@ CAMLprim value mlterminal_d_unsafe_output_substring_utf8(
 	CAMLparam4(out, s, pos, len);
 	handle_t f = handle_of_descr(out);
 #ifdef __WINNT__
-	size_t length = Int_val(len);
+	size_t length = Long_val(len);
 	PWSTR wide_s = malloc((length + 1) * sizeof(WCHAR));
 	if(wide_s == NULL) caml_raise_out_of_memory();
-	char const *p = String_val(s) + Int_val(pos);
+	char const *p = String_val(s) + Long_val(pos);
 	size_t wide_length = MultiByteToWideChar(
 		CP_UTF8,
 		0,
@@ -1092,7 +1092,7 @@ CAMLprim value mlterminal_d_unsafe_output_substring_utf8(
 		}
 	}
 #else
-	write(f, String_val(s) + Int_val(pos), Int_val(len));
+	write(f, String_val(s) + Long_val(pos), Long_val(len));
 #endif
 	CAMLreturn(Val_unit);
 }
