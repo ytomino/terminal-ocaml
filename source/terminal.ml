@@ -347,10 +347,19 @@ module Descr = struct
 	
 	let output_string fd s = output_substring fd s 0 (String.length s);;
 	
-	external output_substring_utf8: file_descr -> string -> int -> int -> unit =
-		"mlterminal_d_output_substring_utf8";;
+	external unsafe_output_substring_utf8: file_descr -> string -> int -> int ->
+		unit =
+		"mlterminal_d_unsafe_output_substring_utf8";;
 	
-	let output_string_utf8 f s = output_substring_utf8 f s 0 (String.length s);;
+	let output_substring_utf8 f s pos len = (
+		if pos >= 0 && len >= 0 && pos + len <= String.length s
+		then unsafe_output_substring_utf8 f s pos len
+		else invalid_arg "Terminal.Descr.output_substring_utf8" (* __FUNCTION__ *)
+	);;
+	
+	let output_string_utf8 f s = (
+		unsafe_output_substring_utf8 f s 0 (String.length s)
+	);;
 	
 	external output_newline: file_descr -> unit -> unit =
 		"mlterminal_d_output_newline";;
@@ -454,13 +463,19 @@ let screen out ?size ?cursor ?wrap f = (
 	)
 );;
 
-let output_substring_utf8 out s pos len = (
+let unsafe_output_substring_utf8 out s pos len = (
 	flush out;
-	Descr.output_substring_utf8 (Unix.descr_of_out_channel out) s pos len
+	Descr.unsafe_output_substring_utf8 (Unix.descr_of_out_channel out) s pos len
+);;
+
+let output_substring_utf8 out s pos len = (
+	if pos >= 0 && len >= 0 && pos + len <= String.length s
+	then unsafe_output_substring_utf8 out s pos len
+	else invalid_arg "Terminal.output_substring_utf8" (* __FUNCTION__ *)
 );;
 
 let output_string_utf8 out s = (
-	output_substring_utf8 out s 0 (String.length s)
+	unsafe_output_substring_utf8 out s 0 (String.length s)
 );;
 
 let is_terminal_in = compose Descr.is_terminal Unix.descr_of_in_channel;;
