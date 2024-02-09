@@ -520,19 +520,6 @@ CAMLprim value mlterminal_grayscale(value scale)
 	CAMLreturn(Val_int(result));
 }
 
-CAMLprim value mlterminal_d_is_terminal(value out)
-{
-	CAMLparam1(out);
-	bool result;
-	handle_t f = handle_of_descr(out);
-#ifdef __WINNT__
-	result = GetFileType(f) == FILE_TYPE_CHAR;
-#else
-	result = isatty(f);
-#endif
-	CAMLreturn(Val_bool(result));
-}
-
 CAMLprim value mlterminal_d_size(value out)
 {
 	CAMLparam1(out);

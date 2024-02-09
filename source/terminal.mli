@@ -158,6 +158,7 @@ module Descr: sig
 	open Unix
 	
 	val is_terminal: file_descr -> bool
+	(** Same as [Unix.isatty]. *)
 	
 	(** {2 Output file_descr} *)
 	

@@ -305,7 +305,8 @@ let shift_of_event ev = (
 module Descr = struct
 	open Unix;;
 
-	external is_terminal: file_descr -> bool = "mlterminal_d_is_terminal";;
+	let is_terminal = Unix.isatty;;
+	
 	external size: file_descr -> int * int = "mlterminal_d_size";;
 	external set_size: file_descr -> int -> int -> unit = "mlterminal_d_set_size";;
 	external view: file_descr -> int * int * int * int = "mlterminal_d_view"
