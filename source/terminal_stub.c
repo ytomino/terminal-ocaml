@@ -1312,8 +1312,7 @@ CAMLprim value mlterminal_d_input_line_utf8(value in)
 			wide_buf = new_buf;
 		}
 	}
-	result = caml_alloc_string(length);
-	memcpy((char *)String_val(result), buf, length);
+	result = caml_alloc_initialized_string(length, buf);
 	free(buf);
 #else
 	size_t max_length = 256;
@@ -1348,8 +1347,7 @@ CAMLprim value mlterminal_d_input_line_utf8(value in)
 			if(buf == NULL) caml_raise_out_of_memory();
 		}
 	}
-	result = caml_alloc_string(length);
-	memcpy((char *)String_val(result), buf, length);
+	result = caml_alloc_initialized_string(length, buf);
 	free(buf);
 #endif
 	CAMLreturn(result);
@@ -1752,8 +1750,7 @@ CAMLprim value mlterminal_utf8_of_locale(value s)
 		utf8_max_length,
 		NULL,
 		NULL);
-	result = caml_alloc_string(utf8_length);
-	memcpy((char *)String_val(result), utf8_str, utf8_length);
+	result = caml_alloc_initialized_string(utf8_length, utf8_str);
 	free(wide_str);
 	free(utf8_str);
 #else
@@ -1790,8 +1787,7 @@ CAMLprim value mlterminal_locale_of_utf8(value s)
 		mbcs_max_length,
 		NULL,
 		NULL);
-	result = caml_alloc_string(mbcs_length);
-	memcpy((char *)String_val(result), mbcs_str, mbcs_length);
+	result = caml_alloc_initialized_string(mbcs_length, mbcs_str);
 	free(wide_str);
 	free(mbcs_str);
 #else
