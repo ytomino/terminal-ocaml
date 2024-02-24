@@ -180,20 +180,6 @@ static value vk_f12[SS_MAX];
 #include <sys/ioctl.h>
 #include <sys/select.h>
 
-#if defined(__gnu_linux__)
-
-static void *reallocf(void *ptr, size_t size)
-{
-	void *result;
-	result = realloc(ptr, size);
-	if(result == NULL && size > 0){
-		free(ptr);
-	}
-	return result;
-}
-
-#endif
-
 #undef stdin
 #undef stdout
 #undef stderr
@@ -361,6 +347,15 @@ static void set_mouse_mode(int fd, bool flag)
 }
 
 #endif
+
+static value realloc_bytes(value val_old, size_t new_length)
+{
+	CAMLparam1(val_old);
+	CAMLlocal1(val_new);
+	val_new = caml_alloc_string(new_length);
+	memcpy(Bytes_val(val_new), String_val(val_old), caml_string_length(val_old));
+	CAMLreturn(val_new);
+}
 
 static int system_16_of_rgb(double red, double green, double blue)
 {
@@ -1213,64 +1208,55 @@ CAMLprim value mlterminal_d_mode_byte(
 CAMLprim value mlterminal_d_input_line_utf8(value in)
 {
 	CAMLparam1(in);
-	CAMLlocal1(result);
-	handle_t f = handle_of_descr(in);
 #ifdef __WINNT__
+	CAMLlocal3(result, val_wide_buf, val_buf);
+	handle_t f = handle_of_descr(in);
 	size_t max_length;
 	size_t length;
-	char *buf;
 	size_t wide_max_length = 256;
 	size_t wide_length = 0;
-	WCHAR *wide_buf = malloc(wide_max_length * sizeof(WCHAR));
-	if(wide_buf == NULL) caml_raise_out_of_memory();
+	val_wide_buf = caml_alloc_string(wide_max_length * sizeof(WCHAR));
 	for(;;){
 		if(caml_check_pending_actions()){
-			free(wide_buf);
 			caml_process_pending_actions();
 		}
-		WCHAR *p = wide_buf + wide_length;
 		DWORD r;
 		caml_enter_blocking_section_no_pending();
-		bool succeeded = ReadConsoleW(f, p, 1, &r, NULL);
+		WCHAR c;
+		bool succeeded = ReadConsoleW(f, &c, 1, &r, NULL);
 		caml_leave_blocking_section();
 		if(!succeeded){
-			free(wide_buf);
 			if(wide_length == 0){
 				/* redirected */
 				max_length = 256;
 				length = 0;
-				buf = malloc(max_length);
-				if(buf == NULL) caml_raise_out_of_memory();
+				val_buf = caml_alloc_string(max_length);
 				for(;;){
 					if(caml_check_pending_actions()){
-						free(buf);
 						caml_process_pending_actions();
 					}
-					char *p = buf + length;
 					DWORD r;
 					caml_enter_blocking_section_no_pending();
-					bool succeeded = ReadFile(f, p, 1, &r, NULL);
+					char c;
+					bool succeeded = ReadFile(f, &c, 1, &r, NULL);
 					caml_leave_blocking_section();
 					if(!succeeded){
-						free(buf);
 						caml_failwith("mlterminal_d_input_line_utf8");
 					}
 					if(r <= 0){
-						free(buf);
 						caml_raise_end_of_file();
-					}else if(*p == '\n'){
-						if(length > 0 && *(p - 1) == '\r') --length;
-						break;
-					}
-					++ length;
-					if(length >= max_length){
-						max_length *= 2;
-						char *new_buf = realloc(buf, max_length);
-						if(new_buf == NULL){
-							free(buf);
-							caml_raise_out_of_memory();
+					}else{
+						char *p = (char *)Bytes_val(val_buf) + length;
+						if(c == '\n'){
+							if(length > 0 && *(p - 1) == '\r') --length;
+							break;
 						}
-						buf = new_buf;
+						*p = c;
+						++ length;
+						if(length >= max_length){
+							max_length *= 2;
+							val_buf = realloc_bytes(val_buf, max_length);
+						}
 					}
 				}
 				break; /* for */
@@ -1278,78 +1264,69 @@ CAMLprim value mlterminal_d_input_line_utf8(value in)
 			caml_failwith("mlterminal_d_input_line_utf8");
 		}
 		if(r <= 0){
-			free(wide_buf);
 			caml_raise_end_of_file();
-		}else if(*p == '\n'){
-			if(wide_length > 0 && *(p - 1) == '\r') --wide_length;
-			/* succeeded */
-			max_length = wide_length * 6;
-			buf = malloc(max_length + 1);
-			if(buf == NULL){
-				free(wide_buf);
-				caml_raise_out_of_memory();
+		}else{
+			WCHAR *p = (WCHAR *)Bytes_val(val_wide_buf) + wide_length;
+			if(c == L'\n'){
+				if(wide_length > 0 && *(p - 1) == '\r') --wide_length;
+				/* succeeded */
+				max_length = wide_length * 6;
+				val_buf = caml_alloc_string(max_length + 1);
+				length = WideCharToMultiByte(
+					CP_UTF8,
+					0,
+					(WCHAR const *)String_val(val_wide_buf),
+					wide_length,
+					(char *)Bytes_val(val_buf),
+					max_length,
+					NULL,
+					NULL);
+				break; /* for */
 			}
-			length = WideCharToMultiByte(
-				CP_UTF8,
-				0,
-				wide_buf,
-				wide_length,
-				buf,
-				max_length,
-				NULL,
-				NULL);
-			free(wide_buf);
-			break; /* for */
-		}
-		++ wide_length;
-		if(wide_length >= wide_max_length){
-			wide_max_length *= 2;
-			WCHAR *new_buf = realloc(wide_buf, wide_max_length * sizeof(WCHAR));
-			if(new_buf == NULL){
-				free(wide_buf);
-				caml_raise_out_of_memory();
+			*p = c;
+			++ wide_length;
+			if(wide_length >= wide_max_length){
+				wide_max_length *= 2;
+				val_wide_buf = realloc_bytes(val_wide_buf, wide_max_length * sizeof(WCHAR));
 			}
-			wide_buf = new_buf;
 		}
 	}
-	result = caml_alloc_initialized_string(length, buf);
-	free(buf);
 #else
+	CAMLlocal2(result, val_buf);
+	handle_t f = handle_of_descr(in);
 	size_t max_length = 256;
 	size_t length = 0;
-	char *buf = malloc(max_length);
-	if(buf == NULL) caml_raise_out_of_memory();
+	val_buf = caml_alloc_string(max_length);
 	for(;;){
 		if(caml_check_pending_actions()){
-			free(buf);
 			caml_process_pending_actions();
 		}
-		char *p = buf + length;
 		caml_enter_blocking_section_no_pending();
-		ssize_t r = read(f, p, 1);
+		char c;
+		ssize_t r = read(f, &c, 1);
 		caml_leave_blocking_section();
 		if(r < 0){
 			if(errno == EINTR){
 				continue; /* for */
 			}
-			free(buf);
 			caml_failwith("mlterminal_d_input_line_utf8");
 		}else if(r == 0){
-			free(buf);
 			caml_raise_end_of_file();
-		}else if(*p == '\n'){
-			break;
-		}
-		++ length;
-		if(length >= max_length){
-			max_length *= 2;
-			buf = reallocf(buf, max_length);
-			if(buf == NULL) caml_raise_out_of_memory();
+		}else{
+			if(c == '\n'){
+				break;
+			}
+			char *p = (char *)Bytes_val(val_buf) + length;
+			*p = c;
+			++ length;
+			if(length >= max_length){
+				max_length *= 2;
+				val_buf = realloc_bytes(val_buf, max_length);
+			}
 		}
 	}
-	result = caml_alloc_initialized_string(length, buf);
-	free(buf);
 #endif
+	result = caml_alloc_initialized_string(length, String_val(val_buf));
 	CAMLreturn(result);
 }
 
@@ -1725,35 +1702,33 @@ CAMLprim value mlterminal_buffered_line_in(value ic)
 CAMLprim value mlterminal_utf8_of_locale(value s)
 {
 	CAMLparam1(s);
-	CAMLlocal1(result);
 #ifdef __WINNT__
-	char const *mbcs_str = String_val(s);
+	CAMLlocal3(result, val_wide_str, val_utf8_str);
 	size_t mbcs_length = caml_string_length(s);
 	size_t wide_max_length = mbcs_length; /* from DBCD to UTF-16 */
-	PWSTR wide_str = malloc((wide_max_length + 1) * sizeof(WCHAR));
-	if(wide_str == NULL) caml_raise_out_of_memory();
+	val_wide_str = caml_alloc_string((wide_max_length + 1) * sizeof(WCHAR));
 	size_t wide_length = MultiByteToWideChar(
 		CP_ACP,
 		0,
-		mbcs_str,
+		String_val(s),
 		mbcs_length,
-		wide_str,
+		(WCHAR *)Bytes_val(val_wide_str),
 		wide_max_length);
 	size_t utf8_max_length = wide_length * 3; /* from UTF-16 to UTF-8 */
-	char *utf8_str = malloc((utf8_max_length + 1));
+	val_utf8_str = caml_alloc_string(utf8_max_length + 1);
+	char *utf8_str = (char *)Bytes_val(val_utf8_str);
 	size_t utf8_length = WideCharToMultiByte(
 		CP_UTF8,
 		0,
-		wide_str,
+		(WCHAR const *)String_val(val_wide_str),
 		wide_length,
 		utf8_str,
 		utf8_max_length,
 		NULL,
 		NULL);
 	result = caml_alloc_initialized_string(utf8_length, utf8_str);
-	free(wide_str);
-	free(utf8_str);
 #else
+	CAMLlocal1(result);
 	result = s;
 #endif
 	CAMLreturn(result);
@@ -1762,35 +1737,33 @@ CAMLprim value mlterminal_utf8_of_locale(value s)
 CAMLprim value mlterminal_locale_of_utf8(value s)
 {
 	CAMLparam1(s);
-	CAMLlocal1(result);
 #ifdef __WINNT__
-	char const *utf8_str = String_val(s);
+	CAMLlocal3(result, val_wide_str, val_mbcs_str);
 	size_t utf8_length = caml_string_length(s);
 	size_t wide_max_length = utf8_length; /* from UTF-8 to UTF-16 */
-	PWSTR wide_str = malloc((wide_max_length + 1) * sizeof(WCHAR));
-	if(wide_str == NULL) caml_raise_out_of_memory();
+	val_wide_str = caml_alloc_string((wide_max_length + 1) * sizeof(WCHAR));
 	size_t wide_length = MultiByteToWideChar(
 		CP_UTF8,
 		0,
-		utf8_str,
+		String_val(s),
 		utf8_length,
-		wide_str,
+		(WCHAR *)Bytes_val(val_wide_str),
 		wide_max_length);
 	size_t mbcs_max_length = wide_length * 2; /* from UTF-16 to DBCS */
-	char *mbcs_str = malloc((mbcs_max_length + 1));
+	val_mbcs_str = caml_alloc_string(mbcs_max_length + 1);
+	char *mbcs_str = (char *)Bytes_val(val_mbcs_str);
 	size_t mbcs_length = WideCharToMultiByte(
 		CP_ACP,
 		0,
-		wide_str,
+		(WCHAR const *)String_val(val_wide_str),
 		wide_length,
 		mbcs_str,
 		mbcs_max_length,
 		NULL,
 		NULL);
 	result = caml_alloc_initialized_string(mbcs_length, mbcs_str);
-	free(wide_str);
-	free(mbcs_str);
 #else
+	CAMLlocal1(result);
 	result = s;
 #endif
 	CAMLreturn(result);
