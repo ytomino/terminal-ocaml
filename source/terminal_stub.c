@@ -1217,11 +1217,8 @@ CAMLprim value mlterminal_d_input_line_utf8(value in)
 	size_t wide_length = 0;
 	val_wide_buf = caml_alloc_string(wide_max_length * sizeof(WCHAR));
 	for(;;){
-		if(caml_check_pending_actions()){
-			caml_process_pending_actions();
-		}
+		caml_enter_blocking_section();
 		DWORD r;
-		caml_enter_blocking_section_no_pending();
 		WCHAR c;
 		bool succeeded = ReadConsoleW(f, &c, 1, &r, NULL);
 		caml_leave_blocking_section();
@@ -1232,11 +1229,8 @@ CAMLprim value mlterminal_d_input_line_utf8(value in)
 				length = 0;
 				val_buf = caml_alloc_string(max_length);
 				for(;;){
-					if(caml_check_pending_actions()){
-						caml_process_pending_actions();
-					}
+					caml_enter_blocking_section();
 					DWORD r;
-					caml_enter_blocking_section_no_pending();
 					char c;
 					bool succeeded = ReadFile(f, &c, 1, &r, NULL);
 					caml_leave_blocking_section();
@@ -1298,10 +1292,7 @@ CAMLprim value mlterminal_d_input_line_utf8(value in)
 	size_t length = 0;
 	val_buf = caml_alloc_string(max_length);
 	for(;;){
-		if(caml_check_pending_actions()){
-			caml_process_pending_actions();
-		}
-		caml_enter_blocking_section_no_pending();
+		caml_enter_blocking_section();
 		char c;
 		ssize_t r = read(f, &c, 1);
 		caml_leave_blocking_section();
