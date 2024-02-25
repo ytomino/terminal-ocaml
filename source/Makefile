@@ -8,9 +8,12 @@ CSRC=terminal_stub.c
 LIBNAME=terminal
 STUBLIBNAME=ml$(LIBNAME)
 
-OCAMLCFLAGS=-w +a
+DEBUG=
+
+OCAMLCFLAGS=$(and $(filter-out 0,$(DEBUG)),-g) -w +a
 OCAMLOPTFLAGS=$(OCAMLCFLAGS)
-CFLAGS=-Wall -Wextra -Wno-unused-result
+CFLAGS=$(and $(filter-out 0,$(DEBUG)),-g$(DEBUG)) -Wall -Wextra \
+       -Wno-unused-result
 
 CCLIB=
 LDFLAGS=
