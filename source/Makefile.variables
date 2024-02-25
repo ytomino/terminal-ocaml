@@ -53,13 +53,12 @@ COBJ=$(patsubst %,$(BUILDDIR)/%.o,$(basename $(CSRC)))
 CDLL=$(patsubst %,$(BUILDDIR)/dll%$(EXT_DLL),$(STUBLIBNAME))
 CSLL=$(patsubst %,$(BUILDDIR)/lib%.a,$(STUBLIBNAME))
 
-OCAMLC_CFLAGS_ALL=$(strip \
-                    $(OCAMLC_CFLAGS) \
-                    $(and $(filter-out $(OCAMLC_CFLAGS),$(CFLAGS)),$(CFLAGS)) \
-                    $(and $(filter-out $(OCAMLC_CFLAGS),$(SHAREDLIB_CFLAGS)), \
-                      $(SHAREDLIB_CFLAGS)))
+OCAMLC_CFLAGS_ALL=$(OCAMLC_CFLAGS) \
+                  $(and $(filter-out $(OCAMLC_CFLAGS),$(CFLAGS)),$(CFLAGS)) \
+                  $(and $(filter-out $(OCAMLC_CFLAGS),$(SHAREDLIB_CFLAGS)), \
+                    $(SHAREDLIB_CFLAGS))
 
-MKDLL_ALL=$(strip $(MKDLL) $(and $(filter-out $(MKDLL),$(LDFLAGS)),$(LDFLAGS)))
+MKDLL_ALL=$(MKDLL) $(and $(filter-out $(MKDLL),$(LDFLAGS)),$(LDFLAGS))
 
 _INSTALLED_FILES=$(notdir $(MLCMI)) \
                  $(and $(OCAMLC),$(notdir $(MLCMIB)) $(LIBNAME).cma) \

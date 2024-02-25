@@ -34,7 +34,7 @@ $(MLCMIB): $(BUILDDIR)/%.cmi: $(BUILDDIR)/%.cmo
 	@$(and $(filter-out $(ML_MODULESB),$*),false)
 
 $(BUILDDIR)/%.o: %.c | $(BUILDDIR)
-	$(CC) -c $(OCAMLC_CFLAGS_ALL) -o $@ -isystem "$(OCAMLLIBDIR)" $<
+	$(CC) $(strip -c $(OCAMLC_CFLAGS_ALL) -o $@ -isystem "$(OCAMLLIBDIR)" $<)
 
 $(BUILDDIR)/$(LIBNAME).cma: $(MLCMO) $(MLCMOB) $(CDLL)
 	$(OCAMLC) -a -o $@ $(MLCMO) $(MLCMOB) $(DLLIB) $(CCLIB)
@@ -43,7 +43,7 @@ $(BUILDDIR)/$(LIBNAME).cmxa: $(MLCMX) $(CSLL)
 	$(OCAMLOPT) -a -o $@ $(MLCMX) $(SLLIB) $(CCLIB)
 
 $(and $(STUBLIBNAME),$(BUILDDIR)/dll$(STUBLIBNAME)$(EXT_DLL)): $(COBJ)
-	$(MKDLL_ALL) -o $@ $^ $(LDLIB)
+	$(strip $(MKDLL_ALL) -o $@ $^ $(LDLIB))
 
 $(and $(STUBLIBNAME),$(BUILDDIR)/lib$(STUBLIBNAME).a): $(COBJ)
 	$(ARCMD) rcs $@ $^
