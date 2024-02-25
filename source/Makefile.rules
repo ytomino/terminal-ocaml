@@ -7,24 +7,24 @@ all: \
 $(PAIRED_MLCMI): $(BUILDDIR)/%.cmi: %.mli | $(BUILDDIR)
 	@$(and $(filter-out $(MLI_MODULES),$*),false)
 	$(or \
-		$(and $(OCAMLC),$(OCAMLC) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -o $@ $<), \
-		$(and $(OCAMLOPT),$(OCAMLOPT) -c -I $(BUILDDIR) $(OCAMLOPTFLAGS) -o $@ $<))
+		$(and $(OCAMLC),$(OCAMLC) -c $(OCAMLCFLAGS) -o $@ -I $(BUILDDIR) $<), \
+		$(and $(OCAMLOPT),$(OCAMLOPT) -c $(OCAMLOPTFLAGS) -o $@ -I $(BUILDDIR) $<))
 
 $(PAIRED_MLCMI:.cmi=.cmo): $(BUILDDIR)/%.cmo: %.ml $(BUILDDIR)/%.cmi
 	@$(and $(filter-out $(MLI_MODULES),$*),false)
-	$(OCAMLC) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -o $@ $<
+	$(OCAMLC) -c $(OCAMLCFLAGS) -o $@ -I $(BUILDDIR) $<
 
 $(PAIRED_MLCMI:.cmi=.cmx): $(BUILDDIR)/%.cmx: %.ml $(BUILDDIR)/%.cmi
 	@$(and $(filter-out $(MLI_MODULES),$*),false)
-	$(OCAMLOPT) -c -I $(BUILDDIR) $(OCAMLOPTFLAGS) -o $@ $<
+	$(OCAMLOPT) -c $(OCAMLOPTFLAGS) -o $@ -I $(BUILDDIR) $<
 
 $(MLONLY_MLCMI:.cmi=.cmo) $(MLCMOB): $(BUILDDIR)/%.cmo: %.ml | $(BUILDDIR)
 	@$(and $(filter-out $(MLONLY_MODULES) $(ML_MODULESB),$*),false)
-	$(OCAMLC) -c -I $(BUILDDIR) $(OCAMLCFLAGS) -w -70 -o $@ $<
+	$(OCAMLC) -c $(OCAMLCFLAGS) -w -70 -o $@ -I $(BUILDDIR) $<
 
 $(MLONLY_MLCMI:.cmi=.cmx): $(BUILDDIR)/%.cmx: %.ml | $(BUILDDIR)
 	@$(and $(filter-out $(MLONLY_MODULES),$*),false)
-	$(OCAMLOPT) -c -I $(BUILDDIR) $(OCAMLOPTFLAGS) -w -70 -o $@ $<
+	$(OCAMLOPT) -c $(OCAMLOPTFLAGS) -w -70 -o $@ -I $(BUILDDIR) $<
 
 $(MLONLY_MLCMI): $(BUILDDIR)/%.cmi: \
 		$(and $(OCAMLC),$(BUILDDIR)/%.cmo) $(and $(OCAMLOPT),$(BUILDDIR)/%.cmx)
@@ -34,7 +34,7 @@ $(MLCMIB): $(BUILDDIR)/%.cmi: $(BUILDDIR)/%.cmo
 	@$(and $(filter-out $(ML_MODULESB),$*),false)
 
 $(BUILDDIR)/%.o: %.c | $(BUILDDIR)
-	$(CC) -c -isystem "$(OCAMLLIBDIR)" $(OCAMLC_CFLAGS_ALL) -o $@ $<
+	$(CC) -c $(OCAMLC_CFLAGS_ALL) -o $@ -isystem "$(OCAMLLIBDIR)" $<
 
 $(BUILDDIR)/$(LIBNAME).cma: $(MLCMO) $(MLCMOB) $(CDLL)
 	$(OCAMLC) -a -o $@ $(MLCMO) $(MLCMOB) $(DLLIB) $(CCLIB)
