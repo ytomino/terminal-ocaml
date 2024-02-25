@@ -29,25 +29,25 @@ all: \
 	$(BINLN)
 
 $(BUILDDIR)/%.byte.exe: %.ml $(BUILDDIR)/terminal.cma
-	$(OCAMLC) -c -o $(BUILDDIR)/$*.cmo -I $(BUILDDIR) $(OCAMLCFLAGS) $<
+	$(OCAMLC) -c $(OCAMLCFLAGS) -o $(BUILDDIR)/$*.cmo -I $(BUILDDIR) $<
 	$(OCAMLC) -o $@ -I $(BUILDDIR) unix.cma terminal.cma $(BUILDDIR)/$*.cmo
 
 $(BUILDDIR)/%.opt.exe: %.ml $(BUILDDIR)/terminal.cmxa
-	$(OCAMLOPT) -c -o $(BUILDDIR)/$*.cmx -I $(BUILDDIR) $(OCAMLOPTFLAGS) $<
+	$(OCAMLOPT) -c $(OCAMLOPTFLAGS) -o $(BUILDDIR)/$*.cmx -I $(BUILDDIR) $<
 	$(OCAMLOPT) -o $@ -I $(BUILDDIR) unix.cmxa terminal.cmxa $(BUILDDIR)/$*.cmx
 
 $(BUILDDIR)/%.byte.exe: basicmagazine/%.ml $(BUILDDIR)/terminal.cma
-	$(OCAMLC) -c -o $(BUILDDIR)/$*.cmo -I $(BUILDDIR) $(OCAMLCFLAGS) $<
+	$(OCAMLC) -c $(OCAMLCFLAGS) -o $(BUILDDIR)/$*.cmo -I $(BUILDDIR) $<
 	$(OCAMLC) -o $@ -I $(BUILDDIR) unix.cma terminal.cma $(BUILDDIR)/$*.cmo
 
 $(BUILDDIR)/%.opt.exe: basicmagazine/%.ml $(BUILDDIR)/terminal.cmxa
-	$(OCAMLOPT) -c -o $(BUILDDIR)/$*.cmx -I $(BUILDDIR) $(OCAMLOPTFLAGS) $<
+	$(OCAMLOPT) -c $(OCAMLOPTFLAGS) -o $(BUILDDIR)/$*.cmx -I $(BUILDDIR) $<
 	$(OCAMLOPT) -o $@ -I $(BUILDDIR) unix.cmxa terminal.cmxa $(BUILDDIR)/$*.cmx
 
 check: all # $(TESTS)
 
 interactive: $(BUILDDIR)/terminal.cma
-	$(RLWRAP) ocaml -I $(BUILDDIR) $(OCAMLCFLAGS) unix.cma terminal.cma
+	$(RLWRAP) ocaml $(OCAMLCFLAGS) -I $(BUILDDIR) unix.cma terminal.cma
 
 $(and $(OCAMLC),$(BUILDDIR)/terminal.cma) \
 $(and $(OCAMLOPT),$(BUILDDIR)/terminal.cmxa)&: \
