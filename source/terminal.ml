@@ -417,9 +417,11 @@ let color out ?reset ?bold ?underscore ?blink ?reverse ?concealed ?foreground
 let save out f = (
 	flush out;
 	Descr.save (Unix.descr_of_out_channel out) (fun () ->
-		let result = f () in
-		flush out;
-		result
+		Fun.protect ~finally:(fun () ->
+			flush out
+		) (fun () ->
+			f ()
+		)
 	)
 );;
 
@@ -458,8 +460,13 @@ let screen out ?size ?cursor ?wrap f = (
 	Descr.screen (Unix.descr_of_out_channel out) ?size ?cursor ?wrap (fun new_fd ->
 		let new_out = Unix.out_channel_of_descr new_fd in
 		set_binary_mode_out new_out false;
-		let result = f new_out in
-		flush new_out;
+		let result =
+			Fun.protect ~finally:(fun () ->
+				flush new_out
+			) (fun () ->
+				f new_out
+			)
+		in
 		result
 	)
 );;
