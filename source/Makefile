@@ -9,11 +9,12 @@ LIBNAME=terminal
 STUBLIBNAME=ml$(LIBNAME)
 
 DEBUG=
+ASSERT=
 
-OCAMLCFLAGS=$(and $(filter-out 0,$(DEBUG)),-g) -w +a
+OCAMLCFLAGS=$(and $(filter-out 0,$(DEBUG)),-g) $(if $(ASSERT),,-noassert) -w +a
 OCAMLOPTFLAGS=$(OCAMLCFLAGS)
-CFLAGS=$(and $(filter-out 0,$(DEBUG)),-g$(DEBUG)) -Wall -Wextra \
-       -Wno-unused-result
+CFLAGS=$(and $(filter-out 0,$(DEBUG)),-g$(DEBUG)) \
+       $(and $(ASSERT),-DDEBUG -DNDEBUG) -Wall -Wextra -Wno-unused-result
 
 CCLIB=
 LDFLAGS=
