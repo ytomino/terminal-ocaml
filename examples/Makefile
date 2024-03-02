@@ -9,6 +9,7 @@ OCAMLOPT=$(or $(filter-out $(OCAMLC),$(OCAMLC:c=opt)),$(PROGRAMPREFIX)ocamlopt)
 RLWRAP?=
 
 DEBUG=
+ASSERT=1
 
 OCAMLCFLAGS=$(and $(filter-out 0,$(DEBUG)),-g)
 OCAMLOPTFLAGS=$(OCAMLCFLAGS)
@@ -68,7 +69,8 @@ $(and $(OCAMLOPT),$(BUILDDIR)/terminal.cmxa)&: \
 	$(MAKE) $(strip \
 		-C ../source install \
 		BUILDDIR=$(abspath $(TERMINAL_BUILDDIR)) \
-		INSTALLDIR=$(abspath $(BUILDDIR)))
+		INSTALLDIR=$(abspath $(BUILDDIR)) \
+		ASSERT=$(ASSERT))
 
 man: ../source/terminal.mli
 	-mkdir $(TMPDIR)/man3
