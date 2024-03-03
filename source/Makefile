@@ -17,7 +17,6 @@ CFLAGS=$(and $(filter-out 0,$(DEBUG)),-g$(DEBUG)) \
        $(and $(ASSERT),-DDEBUG -DNDEBUG) -Wall -Wextra -Wno-unused-result
 
 CCLIB=
-LDFLAGS=
 LDLIB=
 
 include Makefile.rules
