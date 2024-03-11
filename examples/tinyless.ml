@@ -1,6 +1,6 @@
 let filename = Sys.argv.(1);;
 
-let expand_tab s = (
+let expand_tab: string -> string =
 	let rec loop s i n b = (
 		if i >= String.length s then Buffer.contents b else
 		let c = s.[i] in
@@ -15,8 +15,7 @@ let expand_tab s = (
 			loop s (i + 1) (n + 1) b
 		)
 	) in
-	loop s 0 0 (Buffer.create (String.length s + 32))
-);;
+	fun s -> loop s 0 0 (Buffer.create (String.length s + 32));;
 
 let lines =
 	let rec loop f lines = (
