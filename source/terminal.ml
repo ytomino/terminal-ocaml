@@ -69,14 +69,13 @@ let rec take_digits s start = (
 	take_digits s (start + 1)
 );;
 
-let read_digits = (
+let read_digits: string -> int -> int -> int =
 	let rec loop init s start length = (
 		if length <= 0 then init else
 		let n = int_of_char s.[start] - int_of_char '0' in
 		loop (init * 10 + n) s (start + 1) (length - 1)
 	) in
-	loop 0
-);;
+	loop 0;;
 
 let parse_3 (f: int -> int -> int -> char -> 'a) (bad: 'a) (ev: string) = (
 	let result = ref bad in (* optimized away *)
