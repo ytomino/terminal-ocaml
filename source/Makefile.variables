@@ -59,8 +59,11 @@ OCAMLC_CFLAGS_ALL=$(OCAMLC_CFLAGS) \
                     $(SHAREDLIB_CFLAGS))
 
 LDFLAGS?=
+OC_DLL_LDFLAGS?=
 
-MKDLL_ALL=$(MKDLL) $(and $(filter-out $(MKDLL),$(LDFLAGS)),$(LDFLAGS))
+MKDLL_ALL=$(MKDLL) \
+          $(and $(filter-out $(MKDLL),$(OC_DLL_LDFLAGS)),$(OC_DLL_LDFLAGS)) \
+          $(and $(filter-out $(MKDLL),$(LDFLAGS)),$(LDFLAGS))
 
 _INSTALLED_FILES=$(notdir $(MLCMI)) \
                  $(and $(OCAMLC),$(notdir $(MLCMIB)) $(LIBNAME).cma) \
