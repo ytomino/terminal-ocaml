@@ -7,24 +7,32 @@ all: \
 $(PAIRED_MLCMI): $(BUILDDIR)/%.cmi: %.mli | $(BUILDDIR)
 	@$(and $(filter-out $(MLI_MODULES),$*),false)
 	$(or \
-		$(and $(OCAMLC),$(OCAMLC) -c $(OCAMLCFLAGS) -o $@ -I $(BUILDDIR) $<), \
-		$(and $(OCAMLOPT),$(OCAMLOPT) -c $(OCAMLOPTFLAGS) -o $@ -I $(BUILDDIR) $<))
+		$(and $(OCAMLC), \
+			$(OCAMLC) $(strip \
+				-c $(OCAMLCFLAGS) -o $@ $(OCAML_INCLUDE_FLAGS) -I $(BUILDDIR) $<)), \
+		$(and $(OCAMLOPT), \
+			$(OCAMLOPT) $(strip \
+				-c $(OCAMLOPTFLAGS) -o $@ $(OCAML_INCLUDE_FLAGS) -I $(BUILDDIR) $<)))
 
 $(PAIRED_MLCMI:.cmi=.cmo): $(BUILDDIR)/%.cmo: %.ml $(BUILDDIR)/%.cmi
 	@$(and $(filter-out $(MLI_MODULES),$*),false)
-	$(OCAMLC) -c $(OCAMLCFLAGS) -o $@ -I $(BUILDDIR) $<
+	$(OCAMLC) $(strip \
+		-c $(OCAMLCFLAGS) -o $@ $(OCAML_INCLUDE_FLAGS) -I $(BUILDDIR) $<)
 
 $(PAIRED_MLCMI:.cmi=.cmx): $(BUILDDIR)/%.cmx: %.ml $(BUILDDIR)/%.cmi
 	@$(and $(filter-out $(MLI_MODULES),$*),false)
-	$(OCAMLOPT) -c $(OCAMLOPTFLAGS) -o $@ -I $(BUILDDIR) $<
+	$(OCAMLOPT) $(strip \
+		-c $(OCAMLOPTFLAGS) -o $@ $(OCAML_INCLUDE_FLAGS) -I $(BUILDDIR) $<)
 
 $(MLONLY_MLCMI:.cmi=.cmo) $(MLCMOB): $(BUILDDIR)/%.cmo: %.ml | $(BUILDDIR)
 	@$(and $(filter-out $(MLONLY_MODULES) $(ML_MODULESB),$*),false)
-	$(OCAMLC) -c $(OCAMLCFLAGS) -w -70 -o $@ -I $(BUILDDIR) $<
+	$(OCAMLC) $(strip \
+		-c $(OCAMLCFLAGS) -w -70 -o $@ $(OCAML_INCLUDE_FLAGS) -I $(BUILDDIR) $<)
 
 $(MLONLY_MLCMI:.cmi=.cmx): $(BUILDDIR)/%.cmx: %.ml | $(BUILDDIR)
 	@$(and $(filter-out $(MLONLY_MODULES),$*),false)
-	$(OCAMLOPT) -c $(OCAMLOPTFLAGS) -w -70 -o $@ -I $(BUILDDIR) $<
+	$(OCAMLOPT) $(strip \
+		-c $(OCAMLOPTFLAGS) -w -70 -o $@ $(OCAML_INCLUDE_FLAGS) -I $(BUILDDIR) $<)
 
 $(MLONLY_MLCMI): $(BUILDDIR)/%.cmi: \
 		$(and $(OCAMLC),$(BUILDDIR)/%.cmo) $(and $(OCAMLOPT),$(BUILDDIR)/%.cmx)
@@ -34,7 +42,8 @@ $(MLCMIB): $(BUILDDIR)/%.cmi: $(BUILDDIR)/%.cmo
 	@$(and $(filter-out $(ML_MODULESB),$*),false)
 
 $(BUILDDIR)/%.o: %.c | $(BUILDDIR)
-	$(CC) $(strip -c $(OCAMLC_CFLAGS_ALL) -o $@ -isystem "$(OCAMLLIBDIR)" $<)
+	$(CC) $(strip \
+		-c $(OCAMLC_CFLAGS_ALL) -o $@ -isystem "$(OCAMLLIBDIR)" $(C_INCLUDE_FLAGS) $<)
 
 $(BUILDDIR)/$(LIBNAME).cma: $(MLCMO) $(MLCMOB) $(CDLL)
 	$(OCAMLC) -a -o $@ $(MLCMO) $(MLCMOB) $(DLLIB) $(CCLIB)
