@@ -8,6 +8,12 @@ OCAMLC=$(PROGRAMPREFIX)ocamlc
 OCAMLOPT=$(or $(filter-out $(OCAMLC),$(OCAMLC:c=opt)),$(PROGRAMPREFIX)ocamlopt)
 RLWRAP?=
 
+ifndef OCAML_VERSION_MAJOR
+ OCAML_VERSION_MAJOR:=$(basename \
+                        $(basename \
+                          $(shell $(or $(OCAMLC),$(OCAMLOPT)) -version)))
+endif
+
 DEBUG=
 ASSERT=1
 
@@ -15,7 +21,7 @@ OCAMLCFLAGS=$(and $(filter-out 0,$(DEBUG)),-g)
 OCAMLOPTFLAGS=$(OCAMLCFLAGS)
 OCAMLCFLAGS_EXE=$(and $(filter-out 0,$(DEBUG)),-g)
 OCAMLOPTFLAGS_EXE=$(OCAMLCFLAGS_EXE) $(addprefix -ccopt ,$(LDFLAGS))
-OCAML_INCLUDE_FLAGS=
+OCAML_INCLUDE_FLAGS=$(and $(filter 5,$(OCAML_VERSION_MAJOR)),-I +unix)
 LDFLAGS?=
 
 BUILDSUFFIX=.noindex
