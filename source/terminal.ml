@@ -352,7 +352,7 @@ module Descr = struct
 		"mlterminal_d_unsafe_output_substring_utf8";;
 	
 	let output_substring_utf8 f s pos len = (
-		if pos >= 0 && len >= 0 && pos + len <= String.length s
+		if pos >= 0 && len >= 0 && len <= String.length s - pos
 		then unsafe_output_substring_utf8 f s pos len
 		else invalid_arg "Terminal.Descr.output_substring_utf8" (* __FUNCTION__ *)
 	);;
@@ -476,7 +476,7 @@ let unsafe_output_substring_utf8 out s pos len = (
 );;
 
 let output_substring_utf8 out s pos len = (
-	if pos >= 0 && len >= 0 && pos + len <= String.length s
+	if pos >= 0 && len >= 0 && len <= String.length s - pos
 	then unsafe_output_substring_utf8 out s pos len
 	else invalid_arg "Terminal.output_substring_utf8" (* __FUNCTION__ *)
 );;
