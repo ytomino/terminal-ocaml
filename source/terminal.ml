@@ -69,13 +69,17 @@ let rec take_digits s start = (
 	take_digits s (start + 1)
 );;
 
-let read_digits: string -> int -> int -> int =
-	let rec loop init s start length = (
-		if length <= 0 then init else
-		let n = int_of_char s.[start] - int_of_char '0' in
-		loop (init * 10 + n) s (start + 1) (length - 1)
+let read_digits: int -> string -> int -> int -> int =
+	let rec loop value s pos end_pos = (
+		let n = int_of_char s.[pos] - int_of_char '0' in
+		let value = value * 10 + n in
+		let pos = pos + 1 in
+		if pos >= end_pos then value else
+		loop value s pos end_pos
 	) in
-	loop 0;;
+	fun default s pos len ->
+	if len <= 0 then default
+	else loop 0 s pos (pos + len);;
 
 let parse_3 (f: int -> int -> int -> char -> 'a) (bad: 'a) (ev: string) = (
 	let result = ref bad in (* optimized away *)
@@ -84,17 +88,17 @@ let parse_3 (f: int -> int -> int -> char -> 'a) (bad: 'a) (ev: string) = (
 		let p1s = 2 in
 		let p1e = take_digits ev p1s in
 		if p1e < length then (
-			let p1v = if p1s = p1e then 1 else read_digits ev p1s (p1e - p1s) in
+			let p1v = read_digits 1 ev p1s (p1e - p1s) in
 			if ev.[p1e] = ';' then (
 				let p2s = p1e + 1 in
 				let p2e = take_digits ev p2s in
 				if p2e < length then (
-					let p2v = if p2s = p2e then 1 else read_digits ev p2s (p2e - p2s) in
+					let p2v = read_digits 1 ev p2s (p2e - p2s) in
 					if ev.[p2e] = ';' then (
 						let p3s = p2e + 1 in
 						let p3e = take_digits ev p3s in
 						if p3e = length - 1 then (
-							let p3v = if p3s = p3e then 1 else read_digits ev p3s (p3e - p3s) in
+							let p3v = read_digits 1 ev p3s (p3e - p3s) in
 							result := f p1v p2v p3v ev.[p3e]
 						)
 					)
@@ -159,7 +163,7 @@ let parse_key (f: int -> int -> char -> 'a) (bad: 'a) (ev: string) = (
 			let p1s = 2 in
 			let p1e = take_digits ev p1s in
 			if p1e < length then (
-				let k = if p1s = p1e then 1 else read_digits ev p1s (p1e - p1s) in
+				let k = read_digits 1 ev p1s (p1e - p1s) in
 				if p1e = length - 1 then (
 					let c = ev.[p1e] in
 					if c = '~' then (
@@ -169,7 +173,7 @@ let parse_key (f: int -> int -> char -> 'a) (bad: 'a) (ev: string) = (
 				) else if ev.[p1e] =';' then (
 					let p2s = p1e + 1 in
 					let p2e = take_digits ev p2s in
-					let s = if p2s = p2e then 1 else read_digits ev p2s (p2e - p2s) in
+					let s = read_digits 1 ev p2s (p2e - p2s) in
 					if p2e = length - 1 then (
 						result := f k s ev.[p2e] (* \e[3;2~ \e1;2A *)
 					) else if p2e = length - 2 && ev.[p2e] = 'V' && ev.[p2e + 1] = 'k' then (
