@@ -1317,7 +1317,8 @@ CAMLprim value mlterminal_d_input_line_utf8(value in)
 		}
 	}
 #endif
-	result = caml_alloc_initialized_string(length, String_val(val_buf));
+	result = caml_alloc_string(length);
+	memcpy(Bytes_val(result), String_val(val_buf), length);
 	CAMLreturn(result);
 }
 
@@ -1707,17 +1708,17 @@ CAMLprim value mlterminal_utf8_of_locale(value s)
 		wide_max_length);
 	size_t utf8_max_length = wide_length * 3; /* from UTF-16 to UTF-8 */
 	val_utf8_str = caml_alloc_string(utf8_max_length + 1);
-	char *utf8_str = (char *)Bytes_val(val_utf8_str);
 	size_t utf8_length = WideCharToMultiByte(
 		CP_UTF8,
 		0,
 		(WCHAR const *)String_val(val_wide_str),
 		wide_length,
-		utf8_str,
+		(char *)Bytes_val(val_utf8_str),
 		utf8_max_length,
 		NULL,
 		NULL);
-	result = caml_alloc_initialized_string(utf8_length, utf8_str);
+	result = caml_alloc_string(utf8_length);
+	memcpy(Bytes_val(result), String_val(val_utf8_str), utf8_length);
 #else
 	CAMLlocal1(result);
 	result = s;
@@ -1742,17 +1743,17 @@ CAMLprim value mlterminal_locale_of_utf8(value s)
 		wide_max_length);
 	size_t mbcs_max_length = wide_length * 2; /* from UTF-16 to DBCS */
 	val_mbcs_str = caml_alloc_string(mbcs_max_length + 1);
-	char *mbcs_str = (char *)Bytes_val(val_mbcs_str);
 	size_t mbcs_length = WideCharToMultiByte(
 		CP_ACP,
 		0,
 		(WCHAR const *)String_val(val_wide_str),
 		wide_length,
-		mbcs_str,
+		(char *)Bytes_val(val_mbcs_str),
 		mbcs_max_length,
 		NULL,
 		NULL);
-	result = caml_alloc_initialized_string(mbcs_length, mbcs_str);
+	result = caml_alloc_string(mbcs_length);
+	memcpy(Bytes_val(result), String_val(val_mbcs_str), mbcs_length);
 #else
 	CAMLlocal1(result);
 	result = s;
