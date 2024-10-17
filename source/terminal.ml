@@ -121,7 +121,7 @@ let is_resized ev = (
 
 let size_of_event ev = (
 	assert (is_resized ev);
-	parse_3 (fun k h w t -> assert (k = 8 && t = 't'); (w, h)) (1, 1) ev
+	parse_3 (fun k h w t -> assert (k = 8 && t = 't'); w, h) (1, 1) ev
 );;
 
 type key = [
@@ -155,7 +155,7 @@ let parse_key (f: int -> int -> char -> 'a) (bad: 'a) (ev: string) = (
 	let result = ref bad in (* optimized away *)
 	let length = String.length ev in
 	if length >= 3 && ev.[0] = '\x1b' then (
-		begin match ev.[1] with
+		match ev.[1] with
 		| 'O' ->
 			if length = 3 then (
 				result := f 1 1 ev.[2] (* \eOP *)
@@ -184,7 +184,6 @@ let parse_key (f: int -> int -> char -> 'a) (bad: 'a) (ev: string) = (
 			)
 		| _ ->
 			()
-		end
 	);
 	!result
 );;
@@ -193,7 +192,7 @@ let is_key = parse_key (fun _ _ _ -> true) false;;
 
 let key_of_event =
 	parse_key (fun k _ c ->
-		begin match k with
+		match k with
 		| 1 ->
 			begin match c with
 			| 'A' -> `up
@@ -242,7 +241,6 @@ let key_of_event =
 			`f12
 		| _ ->
 			`unknown
-		end
 	) `unknown;;
 
 type shift_key = int;;
@@ -281,7 +279,7 @@ type button = [
 let button_of_event ev = (
 	assert (is_clicked ev);
 	let m = int_of_char ev.[3] in
-	begin match m land 0b01000011 with
+	match m land 0b01000011 with
 	| 0b00000000 -> `button1
 	| 0b00000001 -> `button2
 	| 0b00000010 -> `button3
@@ -289,7 +287,6 @@ let button_of_event ev = (
 	| 0b01000000 -> `wheelup
 	| 0b01000001 -> `wheeldown
 	| _ -> `unknown
-	end
 );;
 
 let shift_of_event ev = (
