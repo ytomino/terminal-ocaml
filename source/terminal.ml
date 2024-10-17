@@ -146,7 +146,8 @@ type key = [
 	| `f9
 	| `f10
 	| `f11
-	| `f12];;
+	| `f12
+];;
 
 type shift_state = int;;
 
@@ -274,7 +275,8 @@ type button = [
 	| `button3
 	| `wheelup
 	| `wheeldown
-	| `released];;
+	| `released
+];;
 
 let button_of_event ev = (
 	assert (is_clicked ev);

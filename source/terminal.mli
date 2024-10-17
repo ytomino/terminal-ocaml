@@ -101,7 +101,8 @@ type key = [
 	| `f9
 	| `f10
 	| `f11
-	| `f12]
+	| `f12
+]
 (** Key. *)
 
 type shift_state = private int
@@ -140,7 +141,8 @@ type button = [
 	| `button3
 	| `wheelup
 	| `wheeldown
-	| `released]
+	| `released
+]
 (** Mouse button. *)
 
 val is_clicked: event -> bool
