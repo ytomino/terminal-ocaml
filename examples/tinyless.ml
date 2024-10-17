@@ -22,7 +22,8 @@ let lines =
 		try
 			let s = expand_tab (input_line f) in
 			loop f (s :: lines)
-		with End_of_file ->
+		with
+		| End_of_file ->
 			close_in f;
 			Array.of_list (List.rev lines)
 	) in
@@ -97,7 +98,8 @@ Terminal.title filename (fun () ->
 						rewrite ()
 					)
 				done
-			with Exit -> ()
+			with
+			| Exit -> ()
 		)
 	)
 );;
