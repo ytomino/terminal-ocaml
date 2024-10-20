@@ -311,7 +311,7 @@ let rec run (stdout, stdin: Unix.file_descr * Unix.file_descr): unit = (
 	let po (n: int): unit = (
 		for y = 0 to 4 do
 			print po_data.(y).(n);
-			Terminal.Descr.move stdout (-5) (+1);
+			Terminal.Descr.move stdout (-5) (+1)
 		done
 	) in
 	let bx = ref 20 in
@@ -363,7 +363,7 @@ let rec run (stdout, stdin: Unix.file_descr * Unix.file_descr): unit = (
 		beep 0;
 		locate 7 (9 + !col); color 7; print "  ";
 		if !a = "O" && !col > 0 then (decr col; beep 1);
-		if !a = "L" && !col < 4 then (incr col; beep 1);
+		if !a = "L" && !col < 4 then (incr col; beep 1)
 	done;
 	let y1 = ref 0 in
 	let b1 = ref 0 in
@@ -551,7 +551,7 @@ let rec run (stdout, stdin: Unix.file_descr * Unix.file_descr): unit = (
 		wait tt
 	) and gosub_9000 () = (
 		(* POINT *)
-		for t = 0 to 50 do beep 1; wait 5; beep 0; done;
+		for t = 0 to 50 do beep 1; wait 5; beep 0 done;
 		if !bx = 0 then incr p1;
 		if !bx = 39 then incr p2;
 		color 2; locate 10 8; po !p2;

@@ -82,7 +82,7 @@ Terminal.title filename (fun () ->
 							Terminal.move stdout 0 (-(!height - 1));
 							Terminal.move_to_bol stdout ();
 							output_string stdout (trim lines.(!p));
-							Terminal.move stdout 0 (!height - 1);
+							Terminal.move stdout 0 (!height - 1)
 						| _ ->
 							()
 						end
