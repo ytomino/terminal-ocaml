@@ -109,20 +109,10 @@ let parse_3 (f: int -> int -> int -> char -> 'a) (bad: 'a) (ev: string) = (
 	!result
 );;
 
-let is_resized ev = (
-	let length = String.length ev in
-	length >= 6
-		&& ev.[0] = '\x1b'
-		&& ev.[1] = '['
-		&& ev.[2] = '8'
-		&& ev.[3] = ';'
-		&& ev.[length - 1] = 't'
-);;
+let is_resized = parse_3 (fun k _ _ t -> k = 8 && t = 't') false;;
 
-let size_of_event ev = (
-	assert (is_resized ev);
-	parse_3 (fun k h w t -> assert (k = 8 && t = 't'); w, h) (1, 1) ev
-);;
+let size_of_event =
+	parse_3 (fun k h w t -> assert (k = 8 && t = 't'); w, h) (1, 1);;
 
 type key = [
 	| `up
