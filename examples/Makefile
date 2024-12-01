@@ -36,10 +36,9 @@ EXAMPLES=$(EXAMPLES1) vs
 
 .PHONY: all check interactive man clean # $(TESTS)
 
-all: \
-	$(and $(OCAMLC),$(patsubst %,$(BUILDDIR)/%.byte.exe,$(EXAMPLES))) \
-	$(and $(OCAMLOPT),$(patsubst %,$(BUILDDIR)/%.opt.exe,$(EXAMPLES))) \
-	$(BINLN)
+all \
+: $(and $(OCAMLC),$(patsubst %,$(BUILDDIR)/%.byte.exe,$(EXAMPLES))) \
+  $(and $(OCAMLOPT),$(patsubst %,$(BUILDDIR)/%.opt.exe,$(EXAMPLES))) $(BINLN)
 
 $(BUILDDIR)/%.byte.exe: %.ml $(BUILDDIR)/terminal.cma
 	$(OCAMLC) $(strip \
@@ -84,8 +83,8 @@ interactive: $(BUILDDIR)/terminal.cma
 		$(OCAMLCFLAGS) $(OCAML_INCLUDE_FLAGS) unix.cma -I $(BUILDDIR) terminal.cma)
 
 $(and $(OCAMLC),$(BUILDDIR)/terminal.cma) \
-$(and $(OCAMLOPT),$(BUILDDIR)/terminal.cmxa)&: \
-		../source/terminal*
+$(and $(OCAMLOPT),$(BUILDDIR)/terminal.cmxa) \
+&: ../source/terminal*
 	$(MAKE) $(strip \
 		-C ../source install \
 		BUILDDIR=$(abspath $(TERMINAL_BUILDDIR)) \

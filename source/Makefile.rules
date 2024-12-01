@@ -1,8 +1,8 @@
 .PHONY: all clean install uninstall
 
-all: \
-	$(and $(OCAMLC),$(BUILDDIR)/$(LIBNAME).cma) \
-	$(and $(OCAMLOPT),$(BUILDDIR)/$(LIBNAME).cmxa)
+all \
+: $(and $(OCAMLC),$(BUILDDIR)/$(LIBNAME).cma) \
+  $(and $(OCAMLOPT),$(BUILDDIR)/$(LIBNAME).cmxa)
 
 $(PAIRED_MLCMI): $(BUILDDIR)/%.cmi: %.mli | $(BUILDDIR)
 	@$(and $(filter-out $(MLI_MODULES),$*),false)
@@ -34,8 +34,8 @@ $(MLONLY_MLCMI:.cmi=.cmx): $(BUILDDIR)/%.cmx: %.ml | $(BUILDDIR)
 	$(OCAMLOPT) $(strip \
 		-c $(OCAMLOPTFLAGS) -w -70 -o $@ $(OCAML_INCLUDE_FLAGS) -I $(BUILDDIR) $<)
 
-$(MLONLY_MLCMI): $(BUILDDIR)/%.cmi: \
-		$(and $(OCAMLC),$(BUILDDIR)/%.cmo) $(and $(OCAMLOPT),$(BUILDDIR)/%.cmx)
+$(MLONLY_MLCMI): $(BUILDDIR)/%.cmi \
+: $(and $(OCAMLC),$(BUILDDIR)/%.cmo) $(and $(OCAMLOPT),$(BUILDDIR)/%.cmx)
 	@$(and $(filter-out $(MLONLY_MODULES),$*),false)
 
 $(MLCMIB): $(BUILDDIR)/%.cmi: $(BUILDDIR)/%.cmo
