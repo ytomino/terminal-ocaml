@@ -250,7 +250,7 @@ let wait (n: int) = Unix.sleepf (float_of_int n /. 1000.0);;
 
 let beep (n: int) = ();; (* dummy *)
 
-let sgn (x: int) = if x > 0 then +1 else if x < 0 then -1 else 0;;
+let sgn (x: int) = if x > 0 then 1 else if x < 0 then -1 else 0;;
 
 let hbar = "‒";;
 let fill = "█";;
@@ -260,7 +260,7 @@ let rec run (stdout, stdin: Unix.file_descr * Unix.file_descr): unit = (
 	let cls () = Terminal.Descr.clear_screen stdout () in
 	let print = Terminal.Descr.output_string_utf8 stdout in
 	let nl () = Terminal.Descr.output_newline stdout () in
-	let bs () = Terminal.Descr.move stdout (-1) (+1) in
+	let bs () = Terminal.Descr.move stdout (-1) 1 in
 	let color n = (
 		let c =
 			match n with
@@ -311,7 +311,7 @@ let rec run (stdout, stdin: Unix.file_descr * Unix.file_descr): unit = (
 	let po (n: int): unit = (
 		for y = 0 to 4 do
 			print po_data.(y).(n);
-			Terminal.Descr.move stdout (-5) (+1)
+			Terminal.Descr.move stdout (-5) 1
 		done
 	) in
 	let bx = ref 20 in
@@ -492,17 +492,17 @@ let rec run (stdout, stdin: Unix.file_descr * Unix.file_descr): unit = (
 	) and gosub_7100 () = (
 		(* COMPUTER RANDER *)
 		let ran = Random.float 1.0 in
-		p2_control := if ran > 0.36 && !byv = -1 then -1 else +1;
+		p2_control := if ran > 0.36 && !byv = -1 then -1 else 1;
 		p2_fire := ran > 0.5
 	) and gosub_7300 () = (
 		(* COMPUTER NOMAC *)
 		let ran = Random.float 1.0 in
-		p2_control := if !byv = -1 then -1 else +1;
+		p2_control := if !byv = -1 then -1 else 1;
 		p2_fire := ran > 0.6 && !y1 < !by && !by < !y1 + !b1
 	) and gosub_7500 () = (
 		(* COMPUTER WINNIX *)
 		let ran = Random.int !b2 + 1 in
-		p2_control := if sgn (2 * !by - (2 * !y2 + ran)) = -1 then -1 else +1;
+		p2_control := if sgn (2 * !by - (2 * !y2 + ran)) = -1 then -1 else 1;
 		p2_fire := !y1 < !by && !by < !y1 + !b1;
 		let ran = Random.float 1.0 in
 		if ran > 0.9 then p2_control := 0
@@ -511,16 +511,16 @@ let rec run (stdout, stdin: Unix.file_descr * Unix.file_descr): unit = (
 		(* I0=ｼﾀ:I1=ｳｴ:I2=ﾚｰｻﾞｰ *)
 		if !bx < 5 || (!bx < 20 && !bxv < 0) then (
 			let ct = !y2 + !b2 / 2 - !by in (* ﾎﾞｰﾙｶﾞｷﾃｲﾙ *)
-			p2_control := if ct > 0 then -1 else +1;
+			p2_control := if ct > 0 then -1 else 1;
 			p2_fire := Random.float 1.0 > 0.98
 		) else (
 			p2_control :=
 				if not (!lx1 > 20) && !y2 <= !ly1 && !y2 + !b2 >= !ly1 then (
-					if !ly1 < 12 then +1 else -1
+					if !ly1 < 12 then 1 else -1
 				) else
 				0;
 			p2_fire := !bx > 20 || Random.float 1.0 > 0.8;
-			if Random.float 1.0 > 0.98 then p2_control := +1;
+			if Random.float 1.0 > 0.98 then p2_control := 1;
 			if Random.float 1.0 > 0.98 then p2_control := -1
 		)
 	) and gosub_8000 () = (
@@ -529,20 +529,20 @@ let rec run (stdout, stdin: Unix.file_descr * Unix.file_descr): unit = (
 		bx := !bx + !bxv;
 		by := !by + !byv;
 		if !bx = 1 && !y2 <= !by && !by <= !y2 + !b2 then (
-			bxv := - !bxv; bx := !bx + !bxv; beep 1
+			bxv := ~- !bxv; bx := !bx + !bxv; beep 1
 		);
 		if !bx = 2 && !by = 1 && !y2 <= !by && !by <= !y2 + !b2 then (
-			bxv := - !bxv; bx := 2; byv := - !byv; beep 1
+			bxv := ~- !bxv; bx := 2; byv := ~- !byv; beep 1
 		) else (
 			if !bx = 38 && !y1 <= !by && !by <= !y1 + !b1 then (
-				bxv := - !bxv; bx := !bx + !bxv; beep 1
+				bxv := ~- !bxv; bx := !bx + !bxv; beep 1
 			);
 			if !bx = 37 && !by = 1 && !y1 <= !by && !by <= !y1 + !b1 then (
-				bxv := - !bxv; bx := 37; byv := - !byv; by := 1; beep 1
+				bxv := ~- !bxv; bx := 37; byv := ~- !byv; by := 1; beep 1
 			) else (
 				if !bx = 0 || !bx = 39 then ms := 1;
 				if !by = 0 || !by = 23 then (
-					byv := - !byv; by := !by + !byv; beep 1
+					byv := ~- !byv; by := !by + !byv; beep 1
 				)
 			)
 		);
@@ -557,7 +557,7 @@ let rec run (stdout, stdin: Unix.file_descr * Unix.file_descr): unit = (
 		color 2; locate 10 8; po !p2;
 		color 1; locate 25 8; po !p1;
 		wait (1500 + tt * 5);
-		ms := 0; bxv := - !bxv
+		ms := 0; bxv := ~- !bxv
 	) and goto_10000 () = (
 		(* GAME OVER *)
 		let win = if !p1 = pmax then 1 else 2 in
