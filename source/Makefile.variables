@@ -24,9 +24,10 @@ LIBDIR=$(or \
          $(and $(filter-out $(exec_prefix),$(PREFIX)),$(PREFIX)/lib), \
          $(abspath $(OCAMLLIBDIR)/..))
 DESTDIR=
-INSTALLDIR=$(addsuffix /,$(DESTDIR))$(LIBDIR)/ocaml
+INSTALLDIR=$(LIBDIR)/ocaml
+DEST_INSTALLDIR=$(abspath $(addsuffix /,$(DESTDIR))$(INSTALLDIR))
 
-DLLPREFIX=$(patsubst $(addsuffix /,$(DESTDIR))%,%,$(INSTALLDIR))/stublibs
+DLLPREFIX=$(INSTALLDIR)/stublibs
 DLLIB=$(and $(STUBLIBNAME), \
         -dllib $(or \
                  $(and $(filter-out $(OCAMLLIBDIR)/stublibs,$(DLLPREFIX)), \
@@ -71,7 +72,7 @@ _INSTALLED_FILES=$(notdir $(MLCMI)) \
                    $(notdir $(MLCMX)) $(LIBNAME).cmxa $(LIBNAME).a \
                    $(and $(STUBLIBNAME),lib$(STUBLIBNAME).a))
 
-_BUILDDIR_FROM_INSTALLDIR=$(patsubst $(abspath $(INSTALLDIR))/%,%, \
+_BUILDDIR_FROM_INSTALLDIR=$(patsubst $(DEST_INSTALLDIR)/%, %, \
                             $(abspath $(BUILDDIR)))
 _BUILDDIR_FROM_INSTALLDIRSTUBLIBS=$(or \
                                     $(addprefix ../, \
