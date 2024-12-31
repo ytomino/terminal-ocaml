@@ -34,8 +34,8 @@ DLLIB=$(and $(STUBLIBNAME), \
                  -l$(STUBLIBNAME)))
 SLLIB=$(addprefix -cclib -l,$(STUBLIBNAME))
 
-ML_MODULES=$(basename $(MLSRC))
-MLI_MODULES=$(basename $(MLI))
+ML_MODULES=$(basename $(notdir $(MLSRC)))
+MLI_MODULES=$(basename $(notdir $(MLI)))
 MLONLY_MODULES=$(filter-out $(MLI_MODULES),$(ML_MODULES))
 ML_MODULESB=$(basename $(MLINIT))
 
@@ -49,7 +49,7 @@ MLOBJ=$(patsubst %,$(BUILDDIR)/%.o,$(ML_MODULES))
 MLCMI=$(patsubst %,$(BUILDDIR)/%.cmi,$(sort $(MLI_MODULES) $(ML_MODULES)))
 MLCMIB=$(patsubst %,$(BUILDDIR)/%.cmi,$(ML_MODULESB))
 
-COBJ=$(patsubst %,$(BUILDDIR)/%.o,$(basename $(CSRC)))
+COBJ=$(patsubst %,$(BUILDDIR)/%.o,$(basename $(notdir $(CSRC))))
 CDLL=$(patsubst %,$(BUILDDIR)/dll%$(EXT_DLL),$(STUBLIBNAME))
 CSLL=$(patsubst %,$(BUILDDIR)/lib%.a,$(STUBLIBNAME))
 
