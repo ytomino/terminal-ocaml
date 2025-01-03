@@ -27,6 +27,8 @@ LDFLAGS?=
 BUILDSUFFIX=.noindex
 BUILDDIR=$(TARGET)$(BUILDSUFFIX)
 TERMINAL_BUILDDIR=$(BUILDDIR)/terminal$(BUILDSUFFIX)
+TERMINAL_WORLD=$(and $(OCAMLC),$(BUILDDIR)/terminal.cma) \
+               $(and $(OCAMLOPT),$(BUILDDIR)/terminal.cmxa)
 
 BINLN=$(and $(filter $(BUILD),$(TARGET)), \
         $(if $(findstring mingw,$(BUILD))$(findstring msys,$(BUILD)),,bin))
@@ -34,7 +36,7 @@ BINLN=$(and $(filter $(BUILD),$(TARGET)), \
 EXAMPLES1=$(basename $(wildcard *.ml))
 EXAMPLES=$(EXAMPLES1) vs
 
-.PHONY: all check interactive man clean # $(TESTS)
+.PHONY: all check world interactive man clean # $(TESTS)
 
 all \
 : $(and $(OCAMLC),$(patsubst %,$(BUILDDIR)/%.byte.exe,$(EXAMPLES))) \
@@ -76,28 +78,29 @@ $(BUILDDIR)/%.opt.exe: basicmagazine/%.ml $(BUILDDIR)/terminal.cmxa
 		-o $@ $(OCAML_INCLUDE_FLAGS) unix.cmxa -I $(BUILDDIR) terminal.cmxa \
 		$(BUILDDIR)/$*.cmx)
 
+$(TERMINAL_WORLD): private INSTALLDIR=$(BUILDDIR)
+$(TERMINAL_WORLD)&: ../source/terminal*
+	$(MAKE) $(strip \
+		-C ../source install \
+		BUILDDIR=$(abspath $(TERMINAL_BUILDDIR)) \
+		INSTALLDIR=$(abspath $(INSTALLDIR)) \
+		ASSERT=$(ASSERT))
+
+$(BINLN):
+	ln -s $(BUILDDIR) $@
+
 check: all # $(TESTS)
+
+world: $(TERMINAL_WORLD)
 
 interactive: $(BUILDDIR)/terminal.cma
 	$(RLWRAP) ocaml $(strip \
 		$(OCAMLCFLAGS) $(OCAML_INCLUDE_FLAGS) unix.cma -I $(BUILDDIR) terminal.cma)
 
-$(and $(OCAMLC),$(BUILDDIR)/terminal.cma) \
-$(and $(OCAMLOPT),$(BUILDDIR)/terminal.cmxa) \
-&: ../source/terminal*
-	$(MAKE) $(strip \
-		-C ../source install \
-		BUILDDIR=$(abspath $(TERMINAL_BUILDDIR)) \
-		INSTALLDIR=$(abspath $(BUILDDIR)) \
-		ASSERT=$(ASSERT))
-
 man: ../source/terminal.mli
 	-mkdir $(TMPDIR)/man3
 	ocamldoc -man -man-mini -d $(TMPDIR)/man3 $<
 	MANPATH=$(TMPDIR) man Terminal
-
-$(BINLN):
-	ln -s $(BUILDDIR) $@
 
 clean:
 	-$(and $(BINLN),[ -h "$(BINLN)" ] && rm "$(BINLN)")
