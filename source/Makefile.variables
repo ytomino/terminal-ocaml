@@ -27,12 +27,14 @@ DESTDIR=
 INSTALLDIR=$(LIBDIR)/ocaml
 DEST_INSTALLDIR=$(abspath $(addsuffix /,$(DESTDIR))$(INSTALLDIR))
 
+_CDLL=$(patsubst %,dll%$(EXT_DLL),$(STUBLIBNAME))
+_CSLL=$(patsubst %,lib%.a,$(STUBLIBNAME))
+
 DLLPREFIX=$(INSTALLDIR)/stublibs
-DLLIB=$(and $(STUBLIBNAME), \
-        -dllib $(or \
-                 $(and $(filter-out $(OCAMLLIBDIR)/stublibs,$(DLLPREFIX)), \
-                   $(DLLPREFIX)/dll$(STUBLIBNAME)$(EXT_DLL)), \
-                 -l$(STUBLIBNAME)))
+DLLIB=$(addprefix -dllib , \
+        $(if $(filter-out $(OCAMLLIBDIR)/stublibs,$(DLLPREFIX)), \
+          $(addprefix $(DLLPREFIX)/,$(_CDLL)), \
+          $(addprefix -l,$(STUBLIBNAME))))
 SLLIB=$(addprefix -cclib -l,$(STUBLIBNAME))
 
 ML_MODULES=$(basename $(notdir $(MLSRC)))
@@ -51,8 +53,8 @@ MLCMI=$(patsubst %,$(BUILDDIR)/%.cmi,$(sort $(MLI_MODULES) $(ML_MODULES)))
 MLCMIB=$(patsubst %,$(BUILDDIR)/%.cmi,$(ML_MODULESB))
 
 COBJ=$(patsubst %,$(BUILDDIR)/%.o,$(basename $(notdir $(CSRC))))
-CDLL=$(patsubst %,$(BUILDDIR)/dll%$(EXT_DLL),$(STUBLIBNAME))
-CSLL=$(patsubst %,$(BUILDDIR)/lib%.a,$(STUBLIBNAME))
+CDLL=$(addprefix $(BUILDDIR)/,$(_CDLL))
+CSLL=$(addprefix $(BUILDDIR)/,$(_CSLL))
 
 OCAMLC_CFLAGS_ALL=$(OCAMLC_CFLAGS) \
                   $(and $(filter-out $(OCAMLC_CFLAGS),$(CFLAGS)),$(CFLAGS)) \
@@ -69,8 +71,7 @@ MKDLL_ALL=$(MKDLL) \
 _INSTALLED_FILES=$(notdir $(MLCMI)) \
                  $(and $(OCAMLC),$(notdir $(MLCMIB)) $(LIBNAME).cma) \
                  $(and $(OCAMLOPT), \
-                   $(notdir $(MLCMX)) $(LIBNAME).cmxa $(LIBNAME).a \
-                   $(and $(STUBLIBNAME),lib$(STUBLIBNAME).a))
+                   $(notdir $(MLCMX)) $(LIBNAME).cmxa $(LIBNAME).a $(_CSLL))
 
 _BUILDDIR_FROM_INSTALLDIR=$(patsubst $(DEST_INSTALLDIR)/%, %, \
                             $(abspath $(BUILDDIR)))

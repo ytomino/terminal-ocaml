@@ -86,10 +86,10 @@ $(BUILDDIR)/$(LIBNAME).cma: $(MLCMO) $(MLCMOB) $(CDLL)
 $(BUILDDIR)/$(LIBNAME).cmxa: $(MLCMX) $(CSLL)
 	$(OCAMLOPT) -a -o $@ $(MLCMX) $(SLLIB) $(CCLIB)
 
-$(and $(STUBLIBNAME),$(BUILDDIR)/dll$(STUBLIBNAME)$(EXT_DLL)): $(COBJ)
+$(CDLL): $(COBJ)
 	$(strip $(MKDLL_ALL) -o $@ $^ $(LDLIB))
 
-$(and $(STUBLIBNAME),$(BUILDDIR)/lib$(STUBLIBNAME).a): $(COBJ)
+$(CSLL): $(COBJ)
 	$(ARCMD) rcs $@ $^
 
 $(BUILDDIR):
@@ -99,13 +99,8 @@ clean:
 	-rm $(strip \
 		$(filter $(BUILDDIR)/%,$(MLI) $(MLSRC) $(CSRC)) \
 		$(MLCMI) \
-		$(MLCMIB) \
-		$(BUILDDIR)/$(LIBNAME).cma \
-		$(MLCMX) \
-		$(BUILDDIR)/$(LIBNAME).cmxa $(BUILDDIR)/$(LIBNAME).a \
-		$(and $(STUBLIBNAME), \
-			$(BUILDDIR)/lib$(STUBLIBNAME).a \
-			$(BUILDDIR)/dll$(STUBLIBNAME)$(EXT_DLL)) \
+		$(MLCMIB) $(BUILDDIR)/$(LIBNAME).cma $(CDLL) \
+		$(MLCMX) $(BUILDDIR)/$(LIBNAME).cmxa $(BUILDDIR)/$(LIBNAME).a $(CSLL) \
 		$(MLCMO) $(MLCMOB) $(MLOBJ) $(COBJ))
 	-rmdir $(BUILDDIR)
 
@@ -114,7 +109,7 @@ install: all | $(DEST_INSTALLDIR)$(and $(OCAMLC),$(STUBLIBNAME),/stublibs)
 		$(addprefix $(_BUILDDIR_FROM_INSTALLDIR)/,$(_INSTALLED_FILES)) .)
 	$(and $(OCAMLC),$(STUBLIBNAME), \
 		cd $(DEST_INSTALLDIR)/stublibs && $(INSTALL_PROGRAM) $(strip \
-			$(_BUILDDIR_FROM_INSTALLDIRSTUBLIBS)/$(notdir $(CDLL)) .))
+			$(_BUILDDIR_FROM_INSTALLDIRSTUBLIBS)/$(_CDLL) .))
 
 $(DEST_INSTALLDIR)/stublibs:
 	mkdir -p $@
@@ -125,4 +120,4 @@ $(DEST_INSTALLDIR):
 uninstall:
 	-rm $(strip \
 		$(addprefix $(DEST_INSTALLDIR)/,$(_INSTALLED_FILES)) \
-		$(addprefix $(DEST_INSTALLDIR)/stublibs/,$(notdir $(CDLL))))
+		$(addprefix $(DEST_INSTALLDIR)/stublibs/,$(_CDLL)))
