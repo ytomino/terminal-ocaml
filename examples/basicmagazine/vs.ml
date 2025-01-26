@@ -246,7 +246,7 @@ let repeat (n: int) (s: string) = (
 	Buffer.contents r
 );;
 
-let wait (n: int) = Unix.sleepf (float_of_int n /. 1000.0);;
+let wait (n: int) = Unix.sleepf (float_of_int n /. 1000.);;
 
 let beep (n: int) = ();; (* dummy *)
 
@@ -491,12 +491,12 @@ let rec run (stdout, stdin: Unix.file_descr * Unix.file_descr): unit = (
 		| _ -> assert false
 	) and gosub_7100 () = (
 		(* COMPUTER RANDER *)
-		let ran = Random.float 1.0 in
+		let ran = Random.float 1. in
 		p2_control := if ran > 0.36 && !byv = -1 then -1 else 1;
 		p2_fire := ran > 0.5
 	) and gosub_7300 () = (
 		(* COMPUTER NOMAC *)
-		let ran = Random.float 1.0 in
+		let ran = Random.float 1. in
 		p2_control := if !byv = -1 then -1 else 1;
 		p2_fire := ran > 0.6 && !y1 < !by && !by < !y1 + !b1
 	) and gosub_7500 () = (
@@ -504,7 +504,7 @@ let rec run (stdout, stdin: Unix.file_descr * Unix.file_descr): unit = (
 		let ran = Random.int !b2 + 1 in
 		p2_control := if sgn (2 * !by - (2 * !y2 + ran)) = -1 then -1 else 1;
 		p2_fire := !y1 < !by && !by < !y1 + !b1;
-		let ran = Random.float 1.0 in
+		let ran = Random.float 1. in
 		if ran > 0.9 then p2_control := 0
 	) and gosub_7700 () = (
 		(* COMPUTER PRO+ *)
@@ -512,16 +512,16 @@ let rec run (stdout, stdin: Unix.file_descr * Unix.file_descr): unit = (
 		if !bx < 5 || (!bx < 20 && !bxv < 0) then (
 			let ct = !y2 + !b2 / 2 - !by in (* ﾎﾞｰﾙｶﾞｷﾃｲﾙ *)
 			p2_control := if ct > 0 then -1 else 1;
-			p2_fire := Random.float 1.0 > 0.98
+			p2_fire := Random.float 1. > 0.98
 		) else (
 			p2_control :=
 				if not (!lx1 > 20) && !y2 <= !ly1 && !y2 + !b2 >= !ly1 then (
 					if !ly1 < 12 then 1 else -1
 				) else
 				0;
-			p2_fire := !bx > 20 || Random.float 1.0 > 0.8;
-			if Random.float 1.0 > 0.98 then p2_control := 1;
-			if Random.float 1.0 > 0.98 then p2_control := -1
+			p2_fire := !bx > 20 || Random.float 1. > 0.8;
+			if Random.float 1. > 0.98 then p2_control := 1;
+			if Random.float 1. > 0.98 then p2_control := -1
 		)
 	) and gosub_8000 () = (
 		(* BALL *)

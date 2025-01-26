@@ -270,20 +270,20 @@ static bool supports_256(void)
 static int rgb_scale(float s)
 {
 	/* These constants are derived from xterm. */
-	double const t4 = 0xd7 / 255.0;
-	double const t3 = 0xaf / 255.0;
-	double const t2 = 0x87 / 255.0;
-	double const t1 = 0x5f / 255.0;
+	double const t4 = 0xd7 / 255.;
+	double const t3 = 0xaf / 255.;
+	double const t2 = 0x87 / 255.;
+	double const t1 = 0x5f / 255.;
 	int result;
-	if(s >= (t4 + 1.0) / 2.0){
+	if(s >= (t4 + 1.) / 2.){
 		result = 5;
-	}else if(s >= (t3 + t4) / 2.0){
+	}else if(s >= (t3 + t4) / 2.){
 		result = 4;
-	}else if(s >= (t2 + t3) / 2.0){
+	}else if(s >= (t2 + t3) / 2.){
 		result = 3;
-	}else if(s >= (t1 + t2) / 2.0){
+	}else if(s >= (t1 + t2) / 2.){
 		result = 2;
-	}else if(s >= t1 / 2.0){
+	}else if(s >= t1 / 2.){
 		result = 1;
 	}else{
 		result = 0;
@@ -504,7 +504,7 @@ CAMLprim value mlterminal_grayscale(value scale)
 	if(!supports_256()){
 		result = system_16_of_rgb(s, s, s);
 	}else{
-		result = (int)floor(s * nextafter(250.0, 0.0) + 5.0) / 10 + 231;
+		result = (int)floor(s * nextafter(250., 0.) + 5.) / 10 + 231;
 		if(result < 232){
 			result = 16; /* #000000 */
 		}else if(result > 255){
