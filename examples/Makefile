@@ -80,7 +80,7 @@ check: all # $(TESTS)
 
 interactive: $(BUILDDIR)/terminal.cma
 	$(RLWRAP) ocaml $(strip \
-		$(OCAMLCFLAGS) $(OCAML_INCLUDE_FLAGS) unix.cma -I $(BUILDDIR) terminal.cma)
+		$(OCAML_INCLUDE_FLAGS) unix.cma -I $(BUILDDIR) terminal.cma)
 
 $(and $(OCAMLC),$(BUILDDIR)/terminal.cma) \
 $(and $(OCAMLOPT),$(BUILDDIR)/terminal.cmxa) \
