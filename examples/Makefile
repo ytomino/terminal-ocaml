@@ -95,7 +95,7 @@ world: $(TERMINAL_WORLD)
 
 interactive: $(BUILDDIR)/terminal.cma
 	$(RLWRAP) ocaml $(strip \
-		$(OCAMLCFLAGS) $(OCAML_INCLUDE_FLAGS) unix.cma -I $(BUILDDIR) terminal.cma)
+		$(OCAML_INCLUDE_FLAGS) unix.cma -I $(BUILDDIR) terminal.cma)
 
 man: ../source/terminal.mli
 	-mkdir $(TMPDIR)/man3
