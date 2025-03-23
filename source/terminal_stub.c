@@ -1295,9 +1295,10 @@ CAMLprim value mlterminal_d_input_line_utf8(value in)
 		caml_enter_blocking_section();
 		char c;
 		ssize_t r = read(f, &c, 1);
+		int error = errno;
 		caml_leave_blocking_section();
 		if(r < 0){
-			if(errno == EINTR){
+			if(error == EINTR){
 				continue; /* for */
 			}
 			caml_failwith("mlterminal_d_input_line_utf8");
@@ -1576,10 +1577,11 @@ CAMLprim value mlterminal_d_input_event(value in)
 			caml_enter_blocking_section();
 			if(break_on_sigwinch) set_restart_on_sigwinch(false);
 			ssize_t r = read(f, &buf[i], 1);
+			int error = errno;
 			if(break_on_sigwinch) set_restart_on_sigwinch(true);
 			caml_leave_blocking_section();
 			if(r < 0){
-				if(errno == EINTR){
+				if(error == EINTR){
 					if(break_on_sigwinch && resized){
 						handling_resized = true;
 						break; /* do */
